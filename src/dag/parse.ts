@@ -61,7 +61,11 @@ export function parsePrereqText(raw: string): PrereqParse {
       let codes: string[] = []
       let alt: string[] = []
       if (pieceCodes.length) {
-        for (const a of body.split(/\s+or\s+/)) (codesIn(a).length ? codes.push(...codesIn(a)) : alt.push(a.trim()))
+        for (const a of body.split(/\s+or\s+/)) {
+          const found = codesIn(a)
+          if (found.length) codes.push(...found)
+          else alt.push(a.trim())
+        }
       } else alt = [body]
       codes = uniq(codes)
       const last = entries[entries.length - 1]

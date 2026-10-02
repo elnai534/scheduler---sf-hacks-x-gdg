@@ -28,10 +28,10 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
           <h2 className="text-xl font-bold">Program information</h2>
           <p className="mt-1 text-sm text-slate-600">This manual information is student entered and will not be presented as a verified degree audit.</p>
           <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 text-sm font-semibold">
-            <label>Academic career<select className={sel} value={program.career} onChange={set('career')}><option>Undergraduate</option></select></label>
-            <label>Program<select className={sel} value={program.degree} onChange={set('degree')}><option>Bachelor of Science</option><option>Bachelor of Arts</option></select></label>
-            <label>Declared major<select className={sel} value={program.major} onChange={set('major')}><option>Visual Communication Design</option><option>Industrial Design</option><option>Computer Science</option></select></label>
-            <label>Minor <span className="font-normal text-slate-500">Optional</span><select className={sel} value={program.minor} onChange={set('minor')}><option>None declared</option><option>Computer Science</option><option>Biology</option></select></label>
+            <label>Academic career<select className={sel} value={program.career} onChange={set('career')}><option value="" disabled>Select…</option><option>Undergraduate</option></select></label>
+            <label>Program<select className={sel} value={program.degree} onChange={set('degree')}><option value="" disabled>Select…</option><option>Bachelor of Science</option><option>Bachelor of Arts</option></select></label>
+            <label>Declared major<select className={sel} value={program.major} onChange={set('major')}><option value="" disabled>Select…</option><option>Visual Communication Design</option><option>Industrial Design</option><option>Computer Science</option></select></label>
+            <label>Minor <span className="font-normal text-slate-500">Optional</span><select className={sel} value={program.minor} onChange={set('minor')}><option value="">None declared</option><option>Computer Science</option><option>Biology</option></select></label>
           </div>
           <div className="mt-5 flex gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"><span className="icon text-lg">info</span>If a DPR is successfully extracted, you will confirm its values instead of re-entering them.</div>
         </section>

@@ -15,10 +15,10 @@ import type { Course } from './data'
 
 export default function App() {
   const [step, setStep] = useState<Step>('pathway')
-  const [program, setProgram] = useState<Program>({ career: 'Undergraduate', degree: 'Bachelor of Science', major: 'Visual Communication Design', minor: 'None declared' })
+  const [program, setProgram] = useState<Program>({ career: '', degree: '', major: '', minor: '' })
   const [report, setReport] = useState<DprReport | null>(null)
   const [openTab, setOpenTab] = useState<'plan' | 'courses' | 'gemini'>('plan')
-  const [ids, setIds] = useState<string[]>(['DES 200 [01]', 'DES 222 [01]'])
+  const [ids, setIds] = useState<string[]>([])
   const [priorities, setPriorities] = useState(['Major Requirements', 'SF State Requirements', 'Consolidate campus days', 'General Education Requirements'])
 
   const accepted = ids.map(byId).filter((c): c is Course => Boolean(c))

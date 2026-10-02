@@ -17,8 +17,8 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
   const done = report ? completedCodes(report) : null
   const doing = report ? inProgressCodes(report) : null
   const [q, setQ] = useState('')
-  const [term, setTerm] = useState('Fall 2026')
-  const [session, setSession] = useState('Academic Regular Session')
+  const [term, setTerm] = useState('')
+  const [session, setSession] = useState('')
   const [open, setOpen] = useState(false)
   const [seatsOnly, setSeatsOnly] = useState(false)
   const [mode, setMode] = useState('')
@@ -35,11 +35,11 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
     <div className="space-y-3 p-4">
       <div className="flex gap-2 rounded-lg border border-brand-200 bg-brand-100 p-3 text-xs text-brand-900">
         <span className="icon text-base">info</span>
-        <span>Reference results from the {term} SF State class search{q && <> (searched “{q}”)</>}. Seats and waitlist counts are examples from one point in time, not current availability.</span>
+        <span>Reference results from the {term ? `${term} ` : ''}SF State class search{q && <> (searched “{q}”)</>}. Seats and waitlist counts are examples from one point in time, not current availability.</span>
       </div>
       <div className="space-y-2 rounded-xl border border-slate-300 bg-white p-3">
-        <label className="block text-sm font-medium">Term<select className={input} value={term} onChange={(e) => setTerm(e.target.value)}><option>Fall 2026</option><option>Spring 2027</option></select></label>
-        <label className="block text-sm font-medium">Session<select className={input} value={session} onChange={(e) => setSession(e.target.value)}><option>Academic Regular Session</option><option>Winter Session</option></select></label>
+        <label className="block text-sm font-medium">Term<select className={input} value={term} onChange={(e) => setTerm(e.target.value)}><option value="" disabled>Select…</option><option>Fall 2026</option><option>Spring 2027</option></select></label>
+        <label className="block text-sm font-medium">Session<select className={input} value={session} onChange={(e) => setSession(e.target.value)}><option value="" disabled>Select…</option><option>Academic Regular Session</option><option>Winter Session</option></select></label>
         <label className="block text-sm font-medium">Subject / course number<input className={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. DES or DES 200" /></label>
         <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 text-xs font-semibold text-brand-900">
           <span className="icon text-base">tune</span>{open ? 'Hide' : 'Show'} seat, mode, time, and instructor filters

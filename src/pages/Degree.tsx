@@ -15,7 +15,7 @@ export default function Degree({ program, report, onNext, onBrowse }: { program:
     : [2, 1, 1, 4]
   const open = report ? openRequirements(report) : []
   const sections = [...new Set(open.map((q) => q.section))]
-  const title = report ? report.plans.map((p) => p.replace(/-(BS|BA|MN)$/, (m) => (m === '-MN' ? ' (minor)' : m === '-BS' ? ', B.S.' : ', B.A.'))).join(' · ') : `${program.major}, ${program.degree === 'Bachelor of Arts' ? 'B.A.' : 'B.S.'}`
+  const title = report ? report.plans.map((p) => p.replace(/-(BS|BA|MN)$/, (m) => (m === '-MN' ? ' (minor)' : m === '-BS' ? ', B.S.' : ', B.A.'))).join(' · ') : [program.major || 'Program not selected', program.degree === 'Bachelor of Arts' ? 'B.A.' : program.degree ? 'B.S.' : ''].filter(Boolean).join(', ')
   return (
     <div className="mx-auto max-w-[1240px] px-12 py-10">
       <div className="text-sm font-semibold text-brand-900">Degree overview</div>
@@ -34,7 +34,7 @@ export default function Degree({ program, report, onNext, onBrowse }: { program:
           <section className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex items-start justify-between"><h2 className="text-xl font-bold">{title}</h2>
               <span className="flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold"><span className="icon text-sm">{report ? 'description' : 'person'}</span>{report ? 'From report' : 'Student entered'}</span></div>
-            <div className="mt-2 text-sm text-slate-600">{report ? `${report.career} · ${report.program} · Current term ${report.lastTerm}` : `${program.career} · Catalog term Fall 2023 · ${program.minor === 'None declared' ? 'No minor declared' : `Minor: ${program.minor}`}`}</div>
+            <div className="mt-2 text-sm text-slate-600">{report ? `${report.career} · ${report.program} · Current term ${report.lastTerm}` : `${program.career || 'Career not selected'} · ${program.minor ? `Minor: ${program.minor}` : 'No minor declared'}`}</div>
           </section>
           <section className="rounded-xl border border-slate-200 bg-white">
             <div className="border-b border-slate-200 p-5"><h2 className="text-xl font-bold">Requirement progress</h2><div className="mt-1 text-sm text-slate-600">In-progress and planned courses remain separate from completed work.</div></div>
