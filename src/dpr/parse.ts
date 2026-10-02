@@ -7,6 +7,8 @@ const ROW_FULL = new RegExp(`^(${CODE})\\s+(.+?)\\s+(\\d+\\.\\d\\d)(?:\\s+(.*))?
 const TAG = /^\[([RG]\d+)(?:\s*\/\s*(L\d+))?\]$/
 const TERM = /^(Fall|Spring|Summer|Winter) \d{4}/
 const NOT_HEADING = /^(Units Required|Total Units Required|Note:|Complete |One course|Refer to|A minimum|The University|All courses|This area|Student |If you|Course Description|View |Units:|Courses:|GPA:|The following|To earn|Important|Undergraduate Degree|College of|1\.|2\.|3\.|Planned|Requirement \(|Career:|Program:|Plan:|Graduation$|Status:|Not Applied|Current Academic|Last Term|General Information|Helpful|San Francisco)/
+/** Printed-page chrome: repeating header, URL/page footer, timestamps. Must never become a heading or table row. */
+const PAGE_NOISE = /^(My Academic Requirements\b|https?:\/\/\S+|.*\bPage \d+ of \d+$|\d{4}-\d{2}-\d{2},? \d{1,2}:\d{2}\s*[AP]M$|Go to top$)/
 const SKIP_TABLE = /^(Course Description|Designation Status|View Course List)/
 
 const num = (s: string) => Number(s.replace(/,/g, ''))
@@ -32,7 +34,7 @@ function parseRow(buf: string, kind: 'used' | 'options', lastTerm: string): DprC
 }
 
 export function parseDpr(text: string): DprReport {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !PAGE_NOISE.test(l))
   const report: DprReport = { career: '', program: '', plans: [], lastTerm: '', requirements: [], courses: [], warnings: [] }
   const lt = /Last Term Registered:\s*((?:Fall|Spring|Summer|Winter) \d{4})/.exec(text)
   if (lt) report.lastTerm = lt[1]
