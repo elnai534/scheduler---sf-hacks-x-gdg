@@ -8,7 +8,7 @@ export interface SectionInfo {
   section: string
   classNumber: number
   kind: 'LEC' | 'ACT'
-  mode: 'Hybrid' | 'Online asynchronous' | 'In person'
+  mode: 'Hybrid' | 'Online asynchronous' | 'Online synchronous' | 'In person'
   seats: number
   waitlist: number
   instructor: string

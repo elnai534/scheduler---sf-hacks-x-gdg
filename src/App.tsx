@@ -8,10 +8,10 @@ import Pathway from './pages/Pathway'
 import type { DprReport } from './dpr/types'
 import Setup from './pages/Setup'
 import type { Program } from './pages/Setup'
-import { SCHEDULABLE, byId, cid, conflictsWith } from './data'
+import { CATALOG, SCHEDULABLE, byId, cid, conflictsWith } from './data'
+import { recommend } from './recommend/recommend'
+import type { Prefs, Recommendation } from './recommend/recommend'
 import type { Course } from './data'
-
-const RANK: Record<string, string> = { Major: 'Major Requirements', 'SF State': 'SF State Requirements', 'General Education': 'General Education Requirements' }
 
 export default function App() {
   const [step, setStep] = useState<Step>('pathway')
@@ -19,8 +19,6 @@ export default function App() {
   const [report, setReport] = useState<DprReport | null>(null)
   const [openTab, setOpenTab] = useState<'plan' | 'courses' | 'gemini'>('plan')
   const [ids, setIds] = useState<string[]>(['DES 200 [01]', 'DES 222 [01]'])
-  const [targetUnits, setTargetUnits] = useState('')
-  const [unavailable, setUnavailable] = useState('')
   const [priorities, setPriorities] = useState(['Major Requirements', 'SF State Requirements', 'Consolidate campus days', 'General Education Requirements'])
 
   const accepted = ids.map(byId).filter((c): c is Course => Boolean(c))
@@ -29,31 +27,23 @@ export default function App() {
   const apply = (add: Course[], remove: string[]) =>
     setIds((cur) => [...cur.filter((x) => !remove.includes(x)), ...add.map(cid).filter((x) => !cur.includes(x) || remove.includes(x))])
 
-  function generate(): string {
-    const blocked = DAYS_FROM(unavailable)
-    const target = parseInt(targetUnits, 10) || 12
-    const codes = [...new Set(SCHEDULABLE.map((c) => c.code))].sort((a, b) => {
-      const ra = priorities.indexOf(RANK[SCHEDULABLE.find((c) => c.code === a)!.requirement])
-      const rb = priorities.indexOf(RANK[SCHEDULABLE.find((c) => c.code === b)!.requirement])
-      return ra - rb
-    })
+  function generate(prefs: Prefs): Recommendation | string {
+    if (report) {
+      const r = recommend(report, CATALOG, prefs)
+      setIds(r.picks.map((x) => cid(x.section)))
+      return r
+    }
+    // No report: simple fallback so the button still works.
+    const blocked = prefs.days.length ? DAYS_ALL.filter((d) => !prefs.days.includes(d)) : []
     const picked: Course[] = []
     let units = 0
-    for (const code of codes) {
-      if (units >= target) break
-      const days = new Set(picked.flatMap((c) => c.meetings.map((m) => m.day)))
-      const options = SCHEDULABLE.filter((c) => c.code === code && !conflictsWith(c, picked) && !c.meetings.some((m) => blocked.includes(m.day)))
-      options.sort((a, b) => {
-        const score = (c: Course) => (c.seats > 0 ? 0 : 10) + c.meetings.filter((m) => !days.has(m.day)).length * (priorities.indexOf('Consolidate campus days') < 3 ? 1 : 0)
-        return score(a) - score(b)
-      })
-      if (options[0] && units + options[0].units <= Math.max(target, units + options[0].units)) {
-        picked.push(options[0])
-        units += options[0].units
-      }
+    for (const code of [...new Set(SCHEDULABLE.map((c) => c.code))]) {
+      if (units >= (prefs.targetUnits || 12)) break
+      const opt = SCHEDULABLE.find((c) => c.code === code && !conflictsWith(c, picked) && !c.meetings.some((m) => blocked.includes(m.day)) && (!prefs.onlineOnly || c.mode.startsWith('Online')))
+      if (opt && units + opt.units <= (prefs.targetUnits || 12)) { picked.push(opt); units += opt.units }
     }
     setIds(picked.map(cid))
-    return `Proposed ${picked.length} sections, ${units} units${blocked.length ? `, avoiding ${blocked.join('/')}` : ''}. Review the calendar, then accept or tweak with Ask Gemini.`
+    return `Proposed ${picked.length} sections, ${units} units.`
   }
 
   return (
@@ -64,7 +54,6 @@ export default function App() {
       {step === 'degree' && <Degree report={report} program={program} onNext={() => { setOpenTab('plan'); setStep('build') }} onBrowse={() => { setOpenTab('courses'); setStep('build') }} />}
       {step === 'build' && (
         <Build report={report} initialTab={openTab} accepted={accepted} onToggle={toggle} onApply={apply} onGenerate={generate} onReview={() => setStep('review')}
-          targetUnits={targetUnits} setTargetUnits={setTargetUnits} unavailable={unavailable} setUnavailable={setUnavailable}
           priorities={priorities} setPriorities={setPriorities} />
       )}
       {step === 'review' && <Review courses={accepted} onBack={() => setStep('build')} />}
@@ -72,6 +61,4 @@ export default function App() {
   )
 }
 
-function DAYS_FROM(text: string): string[] {
-  return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].filter((d) => text.toLowerCase().includes(d.toLowerCase()))
-}
+const DAYS_ALL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const

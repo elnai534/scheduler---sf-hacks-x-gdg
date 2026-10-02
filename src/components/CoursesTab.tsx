@@ -56,7 +56,7 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
             <label className="block text-sm font-medium">Course attribute<input className={input} /></label>
             <label className="block text-sm font-medium">Second course attribute<input className={input} /></label>
             <div className="text-sm font-medium">Instruction mode</div>
-            {['In person', 'Hybrid', 'Online asynchronous'].map((m) => (
+            {['In person', 'Hybrid', 'Online asynchronous', 'Online synchronous'].map((m) => (
               <label key={m} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={mode === m} onChange={() => setMode(mode === m ? '' : m)} />{m}</label>
             ))}
           </div>

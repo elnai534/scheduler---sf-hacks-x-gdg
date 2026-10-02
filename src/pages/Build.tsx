@@ -4,6 +4,8 @@ import CoursesTab from '../components/CoursesTab'
 import GeminiTab from '../components/GeminiTab'
 import PlanTab from '../components/PlanTab'
 import { cid, countConflicts, range } from '../data'
+import { DEFAULT_PREFS } from '../recommend/recommend'
+import type { Prefs, Recommendation } from '../recommend/recommend'
 import type { Course } from '../data'
 import type { DprReport } from '../dpr/types'
 
@@ -16,10 +18,8 @@ interface Props {
   accepted: Course[]
   onToggle: (c: Course) => void
   onApply: (add: Course[], remove: string[]) => void
-  onGenerate: () => string
+  onGenerate: (prefs: Prefs) => Recommendation | string
   onReview: () => void
-  targetUnits: string; setTargetUnits: (v: string) => void
-  unavailable: string; setUnavailable: (v: string) => void
   priorities: string[]; setPriorities: (p: string[]) => void
 }
 
@@ -27,6 +27,8 @@ export default function Build(p: Props) {
   const [tab, setTab] = useState<Tab>(p.initialTab)
   const [selected, setSelected] = useState<string | null>(null)
   const [note, setNote] = useState('')
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS)
+  const [rec, setRec] = useState<Recommendation | null>(null)
   const units = p.accepted.reduce((n, c) => n + c.units, 0)
   const blocking = countConflicts(p.accepted)
   const timed = p.accepted.filter((c) => c.meetings.length)
@@ -54,7 +56,8 @@ export default function Build(p: Props) {
             ))}
           </div>
           <div className="flex-1 overflow-y-auto">
-            {tab === 'plan' && <PlanTab {...p} note={note} onGenerate={() => setNote(p.onGenerate())} />}
+            {tab === 'plan' && <PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} rec={rec} note={note}
+              onGenerate={() => { const r = p.onGenerate(prefs); if (typeof r === 'string') { setNote(r); setRec(null) } else { setNote(''); setRec(r) } }} />}
             {tab === 'courses' && <CoursesTab accepted={p.accepted} onToggle={p.onToggle} report={p.report} />}
             {tab === 'gemini' && <GeminiTab accepted={p.accepted} onApply={p.onApply} />}
           </div>

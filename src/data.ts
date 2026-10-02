@@ -1,5 +1,6 @@
 import catalog from './data/courses.json'
 import { SECTIONS } from './data/sections'
+import { hasSampleSections, sampleSections } from './data/sampleSections'
 import type { CourseNode } from './dag/types'
 
 export type Day = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri'
@@ -13,7 +14,8 @@ export interface Meeting {
   mode: 'In person' | 'Online'
 }
 
-export type CourseMode = 'Hybrid' | 'Online asynchronous' | 'In person' | 'Catalog only'
+export type CourseMode = 'Hybrid' | 'Online asynchronous' | 'Online synchronous' | 'In person' | 'Catalog only'
+export const isOnline = (mode: CourseMode) => mode === 'Online asynchronous' || mode === 'Online synchronous'
 
 export interface Course {
   code: string
@@ -41,7 +43,7 @@ export const CATALOG: Course[] = (catalog as CourseNode[]).flatMap((n): Course[]
     code: n.code, title: n.title, units: n.units ?? 3, prereqText: n.prereqText, description: n.description, node: n,
     division: Number(/\d+/.exec(n.code)![0]) >= 300 ? 'Upper Division' : 'Lower Division',
   }
-  const sections = SECTIONS[n.code]
+  const sections = SECTIONS[n.code] ?? (hasSampleSections(n.code) ? sampleSections(n.code, n.units ?? 3) : undefined)
   if (!sections) {
     return [{ ...base, section: '01', classNumber: 0, kind: 'LEC' as const, mode: 'Catalog only' as const, seats: 0, waitlist: 0, instructor: 'TBA', permission: n.permissionWaiver, requirement: 'Major' as const, meetings: [] }]
   }

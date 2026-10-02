@@ -1,19 +1,29 @@
 import { useState } from 'react'
-import { REQUIREMENTS } from '../data'
+import { DAYS, REQUIREMENTS, cid } from '../data'
+import type { Recommendation } from '../recommend/recommend'
+import type { Prefs } from '../recommend/recommend'
 
 interface Props {
-  targetUnits: string
-  setTargetUnits: (v: string) => void
-  unavailable: string
-  setUnavailable: (v: string) => void
+  prefs: Prefs
+  setPrefs: (p: Prefs) => void
   priorities: string[]
   setPriorities: (p: string[]) => void
   onGenerate: () => void
+  hasReport: boolean
+  rec: Recommendation | null
   note: string
 }
 
+const Toggle = ({ on, onChange, label, hint }: { on: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) => (
+  <label className="flex cursor-pointer items-start gap-3">
+    <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} className="mt-1 size-4 accent-[#2d1b69]" />
+    <span><span className="text-sm font-medium">{label}</span>{hint && <span className="block text-xs text-slate-500">{hint}</span>}</span>
+  </label>
+)
+
 export default function PlanTab(p: Props) {
   const [drag, setDrag] = useState<number | null>(null)
+  const set = (patch: Partial<Prefs>) => p.setPrefs({ ...p.prefs, ...patch })
   const move = (to: number) => {
     if (drag === null || drag === to) return
     const next = [...p.priorities]
@@ -22,6 +32,7 @@ export default function PlanTab(p: Props) {
     p.setPriorities(next)
     setDrag(to)
   }
+  const toggleDay = (d: (typeof DAYS)[number]) => set({ days: p.prefs.days.includes(d) ? p.prefs.days.filter((x) => x !== d) : [...p.prefs.days, d] })
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-start gap-2">
@@ -41,21 +52,57 @@ export default function PlanTab(p: Props) {
         <span className="icon text-xl text-brand-900">lock</span>
         <div><div className="font-semibold">Must have</div><div className="text-xs text-slate-500">Candidates that break these conditions are rejected.</div></div>
       </div>
-      <div className="space-y-2 rounded-xl border border-slate-300 bg-white p-3">
+      <div className="space-y-3 rounded-xl border border-slate-300 bg-white p-3">
         <label className="block text-sm font-medium">Target units
-          <input value={p.targetUnits} onChange={(e) => p.setTargetUnits(e.target.value)} placeholder="e.g. 12" inputMode="numeric"
+          <input value={p.prefs.targetUnits || ''} onChange={(e) => set({ targetUnits: parseInt(e.target.value, 10) || 0 })} placeholder="e.g. 12" inputMode="numeric"
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-brand-700" />
         </label>
-        <label className="block text-sm font-medium">Unavailable time
-          <input value={p.unavailable} onChange={(e) => p.setUnavailable(e.target.value)} placeholder="e.g. Fri, Mon"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-brand-700" />
-        </label>
+        <div>
+          <div className="text-sm font-medium">Only these days <span className="font-normal text-slate-500">(none selected = any)</span></div>
+          <div className="mt-1 flex gap-1.5">
+            {DAYS.map((d) => (
+              <button key={d} onClick={() => toggleDay(d)} className={`flex-1 rounded-lg border py-1.5 text-xs font-semibold ${p.prefs.days.includes(d) ? 'border-brand-900 bg-brand-900 text-white' : 'border-slate-300 hover:bg-slate-50'}`}>{d}</button>
+            ))}
+          </div>
+        </div>
+        <Toggle on={p.prefs.onlineOnly} onChange={(v) => set({ onlineOnly: v })} label="Online classes only" hint="Asynchronous or scheduled online" />
+        <Toggle on={p.prefs.seatsOnly} onChange={(v) => set({ seatsOnly: v })} label="Seats available only" hint="Skip full sections" />
         <div className="text-xs text-slate-500">Current candidate meetings are checked immediately.</div>
+      </div>
+      <div className="space-y-3 rounded-xl border border-slate-300 bg-white p-3">
+        <Toggle on={p.prefs.fast} onChange={(v) => set({ fast: v })} label="Graduate as fast as possible" hint="Favor courses that unlock the most remaining requirements" />
+        <label className="block text-sm font-medium">I want to learn…
+          <input value={p.prefs.skills} onChange={(e) => set({ skills: e.target.value })} placeholder="e.g. drawing, web, python"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-brand-700" />
+        </label>
       </div>
       <button onClick={p.onGenerate} className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 py-3 text-sm font-semibold text-white hover:bg-brand-700">
         <span className="icon text-lg">auto_awesome</span>Generate proposed schedule
       </button>
+      {!p.hasReport && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">No degree report loaded, so suggestions are not tied to your requirements. Paste one on Program setup.</div>}
       {p.note && <div className="rounded-lg bg-brand-100 p-3 text-xs text-brand-900">{p.note}</div>}
+      {p.rec && (
+        <div className="space-y-3 rounded-xl border border-brand-200 bg-white p-3 text-sm">
+          <div className="font-semibold">Why these classes · {p.rec.totalUnits} units</div>
+          {p.rec.picks.map((x) => (
+            <div key={cid(x.section)} className="rounded-lg bg-slate-50 p-2.5">
+              <div className="font-semibold">{cid(x.section)} · {x.section.title}</div>
+              <div className="mt-0.5 text-xs text-slate-500">For: {x.requirement}</div>
+              <ul className="mt-1 list-disc pl-4 text-xs text-slate-700">{x.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+            </div>
+          ))}
+          {p.rec.notes.map((n) => <div key={n} className="text-xs text-slate-600">{n}</div>)}
+          {p.rec.blockedInterests.length > 0 && (
+            <div className="text-xs"><div className="font-semibold">Matches you can’t take yet</div>
+              {p.rec.blockedInterests.map((b) => <div key={b.code} className="text-slate-600">{b.code} {b.title}: needs {b.needs}</div>)}</div>
+          )}
+          {p.rec.uncovered.length > 0 && (
+            <details className="text-xs"><summary className="cursor-pointer font-semibold">Not covered this term ({p.rec.uncovered.length})</summary>
+              <ul className="mt-1 space-y-1 text-slate-600">{p.rec.uncovered.map((u) => <li key={u.requirement}><b>{u.requirement}</b>: {u.why}</li>)}</ul></details>
+          )}
+          <div className="text-[11px] text-slate-400">Removed by your preferences: online {p.rec.filteredOut.online}, days {p.rec.filteredOut.days}, seats {p.rec.filteredOut.seats}, prerequisites {p.rec.filteredOut.prerequisites}. Days, modes and seats are sample data.</div>
+        </div>
+      )}
       <div className="flex items-start gap-2">
         <span className="icon text-xl text-brand-900">tune</span>
         <div><div className="font-semibold">Prioritize, in this order</div><div className="text-xs text-slate-500">Rank flexible priorities; trade-offs will cite schedule facts.</div></div>
