@@ -3,6 +3,7 @@ import { parseDpr } from '../dpr/parse'
 import { pdfToText } from '../dpr/pdf'
 import sampleDpr from '../dpr/fixtures/sample-dpr.txt?raw'
 import type { DprReport } from '../dpr/types'
+import { applyChange, degreeEnabled, majorEnabled, minorEnabled } from '../programRules'
 
 export interface Program { career: string; degree: string; major: string; minor: string }
 
@@ -23,7 +24,7 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
     setBusy(true)
     try { submit(await pdfToText(file)) } catch { setErr('Could not read that PDF. Upload your Degree Progress Report as a PDF file.') } finally { setBusy(false) }
   }
-  const set = (k: keyof Program) => (e: React.ChangeEvent<HTMLSelectElement>) => setProgram({ ...program, [k]: e.target.value })
+  const set = (k: keyof Program) => (e: React.ChangeEvent<HTMLSelectElement>) => setProgram(applyChange(program, k, e.target.value))
   return (
     <div className="mx-auto max-w-[1240px] px-12 py-8">
       <div className="text-sm font-semibold text-brand-900">Step 2 of 4 · Program setup</div>
@@ -51,9 +52,9 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
           <h2 className="text-lg font-bold text-slate-900">Enter Degree Progress Manually</h2>
           <div className="mt-12 grid grid-cols-2 gap-x-4 gap-y-4 text-sm font-semibold text-slate-800">
             <label>Academic career<select className={sel} value={program.career} onChange={set('career')}><option value="" disabled>Select…</option><option>Undergraduate</option></select></label>
-            <label>Program<select className={sel} value={program.degree} onChange={set('degree')}><option value="" disabled>Select…</option><option>Bachelor of Science</option><option>Bachelor of Arts</option></select></label>
-            <label>Declared major<select className={sel} value={program.major} onChange={set('major')}><option value="" disabled>Select…</option><option>Visual Communication Design</option><option>Industrial Design</option><option>Computer Science</option></select></label>
-            <label>Minor <span className="font-normal text-slate-500">Optional</span><select className={sel} value={program.minor} onChange={set('minor')}><option value="">None declared</option><option>Computer Science</option><option>Biology</option></select></label>
+            <label>Program<select className={sel} value={program.degree} onChange={set('degree')}><option value="" disabled>Select…</option>{['Bachelor of Science', 'Bachelor of Arts'].map((o) => <option key={o} disabled={!degreeEnabled(program, o)}>{o}</option>)}</select></label>
+            <label>Declared major<select className={sel} value={program.major} onChange={set('major')}><option value="" disabled>Select…</option>{['Visual Communication Design', 'Industrial Design', 'Computer Science'].map((o) => <option key={o} disabled={!majorEnabled(program, o)}>{o}</option>)}</select></label>
+            <label>Minor <span className="font-normal text-slate-500">Optional</span><select className={sel} value={program.minor} onChange={set('minor')}><option value="">None declared</option>{['Computer Science', 'Biology'].map((o) => <option key={o} disabled={!minorEnabled(program, o)}>{o}</option>)}</select></label>
           </div>
           <button onClick={onNext} className="mx-auto mt-10 flex h-10 w-[210px] items-center justify-center gap-2 rounded-lg border border-violet-300 bg-white text-sm font-semibold text-brand-900 hover:bg-brand-100">Continue Manually<span className="icon text-base">arrow_forward</span></button>
         </section>
