@@ -1,7 +1,7 @@
-export type Step = 'setup' | 'degree' | 'build' | 'review'
+export type Step = 'pathway' | 'setup' | 'degree' | 'build' | 'review'
 
 const STEPS: { id: Step; label: string }[] = [
-  { id: 'setup', label: 'Program setup' },
+  { id: 'pathway', label: 'Program setup' },
   { id: 'degree', label: 'Degree overview' },
   { id: 'build', label: 'Build schedule' },
   { id: 'review', label: 'Final review' },
@@ -24,7 +24,7 @@ export default function Header({ step, onStep }: { step: Step; onStep: (s: Step)
           <button
             key={s.id}
             onClick={() => onStep(s.id)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium ${step === s.id ? 'bg-white text-brand-900' : 'text-white/90 hover:bg-white/10'}`}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium ${(step === s.id || (s.id === 'pathway' && step === 'setup')) ? 'bg-white text-brand-900' : 'text-white/90 hover:bg-white/10'}`}
           >
             {s.label}
           </button>

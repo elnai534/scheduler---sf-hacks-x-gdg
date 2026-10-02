@@ -4,16 +4,18 @@ import type { Step } from './components/Header'
 import Build from './pages/Build'
 import Degree from './pages/Degree'
 import Review from './pages/Review'
+import Pathway from './pages/Pathway'
 import Setup from './pages/Setup'
+import type { Program } from './pages/Setup'
 import { CATALOG, byId, cid, conflictsWith } from './data'
 import type { Course } from './data'
 
 const RANK: Record<string, string> = { Major: 'Major Requirements', 'SF State': 'SF State Requirements', 'General Education': 'General Education Requirements' }
 
 export default function App() {
-  const [step, setStep] = useState<Step>('setup')
-  const [major, setMajor] = useState('Design (BA)')
-  const [type, setType] = useState('Continuing')
+  const [step, setStep] = useState<Step>('pathway')
+  const [program, setProgram] = useState<Program>({ career: 'Undergraduate', degree: 'Bachelor of Science', major: 'Visual Communication Design', minor: 'None declared' })
+  const [openTab, setOpenTab] = useState<'plan' | 'courses' | 'gemini'>('plan')
   const [ids, setIds] = useState<string[]>(['DES 200 [01]', 'DES 222 [01]'])
   const [targetUnits, setTargetUnits] = useState('')
   const [unavailable, setUnavailable] = useState('')
@@ -55,10 +57,11 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <Header step={step} onStep={setStep} />
-      {step === 'setup' && <Setup major={major} setMajor={setMajor} type={type} setType={setType} onNext={() => setStep('degree')} />}
-      {step === 'degree' && <Degree major={major} type={type} onBack={() => setStep('setup')} onNext={() => setStep('build')} />}
+      {step === 'pathway' && <Pathway onNext={() => setStep('setup')} />}
+      {step === 'setup' && <Setup program={program} setProgram={setProgram} onBack={() => setStep('pathway')} onNext={() => setStep('degree')} />}
+      {step === 'degree' && <Degree program={program} onNext={() => { setOpenTab('plan'); setStep('build') }} onBrowse={() => { setOpenTab('courses'); setStep('build') }} />}
       {step === 'build' && (
-        <Build accepted={accepted} onToggle={toggle} onApply={apply} onGenerate={generate} onReview={() => setStep('review')}
+        <Build initialTab={openTab} accepted={accepted} onToggle={toggle} onApply={apply} onGenerate={generate} onReview={() => setStep('review')}
           targetUnits={targetUnits} setTargetUnits={setTargetUnits} unavailable={unavailable} setUnavailable={setUnavailable}
           priorities={priorities} setPriorities={setPriorities} />
       )}

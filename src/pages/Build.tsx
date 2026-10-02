@@ -10,6 +10,7 @@ type Tab = 'plan' | 'courses' | 'gemini'
 const TABS: { id: Tab; label: string }[] = [{ id: 'plan', label: 'Plan' }, { id: 'courses', label: 'Courses' }, { id: 'gemini', label: 'Ask Gemini' }]
 
 interface Props {
+  initialTab: Tab
   accepted: Course[]
   onToggle: (c: Course) => void
   onApply: (add: Course[], remove: string[]) => void
@@ -21,7 +22,7 @@ interface Props {
 }
 
 export default function Build(p: Props) {
-  const [tab, setTab] = useState<Tab>('plan')
+  const [tab, setTab] = useState<Tab>(p.initialTab)
   const [selected, setSelected] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const units = p.accepted.reduce((n, c) => n + c.units, 0)
@@ -76,16 +77,28 @@ export default function Build(p: Props) {
               <button onClick={() => { p.onToggle(sel); setSelected(null) }} className="mt-2 text-xs font-semibold text-red-700">Remove from schedule</button>
             </div>
           )}
-          <h3 className="mb-2 mt-5 text-sm font-bold">Untimed and asynchronous</h3>
-          {untimed.length === 0 && <div className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">None added.</div>}
-          {untimed.map((c) => (
-            <div key={cid(c)} className="mb-2 flex items-center gap-3 rounded-lg border border-slate-300 bg-white p-4">
-              <div className="grid size-10 place-items-center rounded-lg bg-brand-100 text-brand-900"><span className="icon text-xl">desktop_windows</span></div>
-              <div className="flex-1"><div className="text-sm font-semibold">{cid(c)} · {c.title}</div><div className="text-xs text-slate-500">No scheduled day or time · Online</div></div>
-              <span className="rounded-full border border-brand-200 bg-brand-100 px-3 py-0.5 text-xs font-medium text-brand-900">{c.mode}</span>
-              <button onClick={() => p.onToggle(c)} className="icon text-slate-400 hover:text-red-700" title="Remove">close</button>
+          <div className="mt-5 grid grid-cols-[1fr_320px] items-start gap-4">
+            <div>
+              <h3 className="mb-2 text-sm font-bold">Untimed and asynchronous</h3>
+              {untimed.length === 0 && <div className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">None added.</div>}
+              {untimed.map((c) => (
+                <div key={cid(c)} className="mb-2 flex items-center gap-3 rounded-lg border border-slate-300 bg-white p-4">
+                  <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-100 text-brand-900"><span className="icon text-xl">desktop_windows</span></div>
+                  <div className="flex-1"><div className="text-sm font-semibold">{cid(c)} · {c.title}</div><div className="text-xs text-slate-500">No scheduled day or time · Online</div></div>
+                  <span className="rounded-full border border-brand-200 bg-brand-100 px-3 py-0.5 text-xs font-medium text-brand-900">{c.mode}</span>
+                  <button onClick={() => p.onToggle(c)} className="icon text-slate-400 hover:text-red-700" title="Remove">close</button>
+                </div>
+              ))}
             </div>
-          ))}
+            <div className="space-y-2 pt-6">
+              {p.accepted.filter((c) => c.permission).map((c) => (
+                <div key={cid(c)} className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-start gap-2 text-sm font-bold"><span className="icon text-base text-amber-700">warning</span>Permission requirement for {cid(c)}</div>
+                  <div className="mt-1 pl-6 text-xs text-amber-800">Permission number required</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
       </div>
     </div>

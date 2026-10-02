@@ -24,11 +24,15 @@ export default function PlanTab(p: Props) {
   }
   return (
     <div className="space-y-4 p-4">
-      {REQUIREMENTS.slice(1).map((r) => (
+      <div className="flex items-start gap-2">
+        <span className="icon text-xl text-brand-900">tune</span>
+        <div><div className="font-semibold">Requirement progress</div><div className="text-xs text-slate-500">In-progress requirements</div></div>
+      </div>
+      {REQUIREMENTS.map((r) => (
         <div key={r.name} className="border-b border-slate-200 pb-3">
           <div className="flex items-end justify-between">
             <div className="text-base font-semibold">{r.name}</div>
-            <div className="text-right text-sm"><b>{r.done} / {r.total}</b><div className="text-xs text-slate-500">{r.total - r.done} units remaining</div></div>
+            <div className="flex items-end gap-2 text-right text-sm"><div><b>{r.done} / {r.total}</b><div className="text-xs text-slate-500">{r.total - r.done} units remaining</div></div><span className="icon text-slate-500">expand_more</span></div>
           </div>
           <div className="mt-2 h-1.5 rounded-full bg-slate-200"><div className="h-full rounded-full bg-brand-900" style={{ width: `${(r.done / r.total) * 100}%` }} /></div>
         </div>

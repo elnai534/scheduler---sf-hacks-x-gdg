@@ -1,32 +1,42 @@
-const MAJORS = ['Design (BA)', 'Computer Science (BS)', 'Biology (BS)', 'American Indian Studies (BA)']
-const TYPES = ['First-year', 'Transfer', 'Continuing', 'Graduate']
+export interface Program { career: string; degree: string; major: string; minor: string }
 
-export default function Setup({ major, setMajor, type, setType, onNext }: {
-  major: string; setMajor: (v: string) => void; type: string; setType: (v: string) => void; onNext: () => void
-}) {
+const sel = 'mt-2 w-full rounded-lg border border-slate-400 bg-white px-3 py-2.5 text-sm font-normal outline-brand-700'
+
+export default function Setup({ program, setProgram, onNext, onBack }: { program: Program; setProgram: (p: Program) => void; onNext: () => void; onBack: () => void }) {
+  const set = (k: keyof Program) => (e: React.ChangeEvent<HTMLSelectElement>) => setProgram({ ...program, [k]: e.target.value })
   return (
-    <div className="mx-auto max-w-xl px-6 py-14">
-      <div className="text-sm font-medium text-brand-900">Program setup</div>
-      <h1 className="mt-1 text-3xl font-bold">Tell us about your program</h1>
-      <p className="mt-3 text-slate-600">We use this to pull your degree requirements. This is a planning tool, not enrollment.</p>
-      <div className="mt-8 space-y-6 rounded-2xl border border-slate-300 bg-white p-6">
-        <label className="block text-sm font-semibold">Major
-          <select value={major} onChange={(e) => setMajor(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-brand-700">
-            {MAJORS.map((m) => <option key={m}>{m}</option>)}
-          </select>
-        </label>
-        <div>
-          <div className="text-sm font-semibold">Student type</div>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {TYPES.map((t) => (
-              <button key={t} onClick={() => setType(t)} className={`rounded-lg border px-3 py-2.5 text-sm font-medium ${type === t ? 'border-brand-900 bg-brand-100 text-brand-900' : 'border-slate-300 hover:bg-slate-50'}`}>{t}</button>
-            ))}
+    <div className="mx-auto max-w-[1240px] px-12 py-10">
+      <div className="text-sm font-semibold text-brand-900">Step 2 of 4 · Program setup</div>
+      <h1 className="mt-2 text-3xl font-bold">Confirm your academic program</h1>
+      <p className="mt-3 max-w-3xl text-slate-600">Start with the program you declare. A Degree Progress Report (DPR) can add course and requirement evidence, but it is optional.</p>
+      <div className="mt-8 grid grid-cols-[1.15fr_1fr] gap-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold">Program information</h2>
+          <p className="mt-1 text-sm text-slate-600">This manual information is student entered and will not be presented as a verified degree audit.</p>
+          <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 text-sm font-semibold">
+            <label>Academic career<select className={sel} value={program.career} onChange={set('career')}><option>Undergraduate</option></select></label>
+            <label>Program<select className={sel} value={program.degree} onChange={set('degree')}><option>Bachelor of Science</option><option>Bachelor of Arts</option></select></label>
+            <label>Declared major<select className={sel} value={program.major} onChange={set('major')}><option>Visual Communication Design</option><option>Industrial Design</option><option>Computer Science</option></select></label>
+            <label>Minor <span className="font-normal text-slate-500">Optional</span><select className={sel} value={program.minor} onChange={set('minor')}><option>None declared</option><option>Computer Science</option><option>Biology</option></select></label>
           </div>
+          <div className="mt-5 flex gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"><span className="icon text-lg">info</span>If a DPR is successfully extracted, you will confirm its values instead of re-entering them.</div>
+        </section>
+        <div>
+          <section className="flex items-start gap-4 rounded-2xl border border-dashed border-violet-400 bg-slate-100 p-5">
+            <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-brand-900"><span className="icon text-xl">cloud_upload</span></div>
+            <div className="flex-1"><div className="font-bold">Upload your Degree Progress Report (DPR)</div>
+              <p className="mt-1 text-sm text-slate-600">Optional. Upload a PDF to prefill program and requirement information. You will review all extracted values before they are used.</p></div>
+            <label className="cursor-pointer rounded-lg border border-brand-900 bg-white px-4 py-2 text-sm font-semibold text-brand-900">Choose PDF<input type="file" accept="application/pdf" className="hidden" onChange={onNext} /></label>
+          </section>
+          <div className="my-3 flex items-center gap-3 text-xs font-semibold text-slate-500"><div className="h-px flex-1 bg-slate-300" />OR<div className="h-px flex-1 bg-slate-300" /></div>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="font-bold">Continue without a report</div>
+            <p className="mt-2 text-sm text-slate-600">You can schedule from your declared program and add courses manually. Academic eligibility and remaining requirements will remain unverified.</p>
+            <button onClick={onNext} className="mt-4 flex items-center gap-2 rounded-lg border border-brand-900 px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-100">Use manual information<span className="icon text-lg">arrow_forward</span></button>
+          </section>
         </div>
-        <button onClick={onNext} className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 py-3 text-sm font-semibold text-white hover:bg-brand-700">
-          Continue <span className="icon text-lg">arrow_forward</span>
-        </button>
       </div>
+      <button onClick={onBack} className="mt-6 flex items-center gap-2 px-4 py-2 text-sm font-semibold"><span className="icon text-lg">arrow_back</span>Back</button>
     </div>
   )
 }

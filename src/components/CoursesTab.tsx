@@ -30,9 +30,9 @@ export default function CoursesTab({ accepted, onToggle }: { accepted: Course[];
         <span>Reference results from the {term} SF State class search{q && <> (searched “{q}”)</>}. Seats and waitlist counts are examples from one point in time, not current availability.</span>
       </div>
       <div className="space-y-2 rounded-xl border border-slate-300 bg-white p-3">
-        <label className="block text-sm font-medium">Term<input className={input} value={term} onChange={(e) => setTerm(e.target.value)} /></label>
-        <label className="block text-sm font-medium">Session<input className={input} value={session} onChange={(e) => setSession(e.target.value)} /></label>
-        <label className="block text-sm font-medium">Subject / course number<input className={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. DES" /></label>
+        <label className="block text-sm font-medium">Term<select className={input} value={term} onChange={(e) => setTerm(e.target.value)}><option>Fall 2026</option><option>Spring 2027</option></select></label>
+        <label className="block text-sm font-medium">Session<select className={input} value={session} onChange={(e) => setSession(e.target.value)}><option>Academic Regular Session</option><option>Winter Session</option></select></label>
+        <label className="block text-sm font-medium">Subject / course number<input className={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. DES or DES 200" /></label>
         <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 text-xs font-semibold text-brand-900">
           <span className="icon text-base">tune</span>{open ? 'Hide' : 'Show'} seat, mode, time, and instructor filters
         </button>
@@ -40,11 +40,17 @@ export default function CoursesTab({ accepted, onToggle }: { accepted: Course[];
           <div className="space-y-2 border-t border-slate-200 pt-2">
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seatsOnly} onChange={(e) => setSeatsOnly(e.target.checked)} />Seats available only</label>
             <label className="block text-sm font-medium">Instructor last name<input className={input} value={instructor} onChange={(e) => setInstructor(e.target.value)} /></label>
-            <label className="block text-sm font-medium">Instruction mode
-              <select className={input} value={mode} onChange={(e) => setMode(e.target.value)}>
-                <option value="">Any</option><option>In person</option><option>Hybrid</option><option>Online asynchronous</option>
-              </select>
-            </label>
+            <label className="block text-sm font-medium">Location<input className={input} placeholder="e.g. Fine Arts Building" /></label>
+            <div className="grid grid-cols-2 gap-2 text-sm font-medium">
+              <label>Begins at/after<input type="time" className={input} /></label>
+              <label>Ends at/before<input type="time" className={input} /></label>
+            </div>
+            <label className="block text-sm font-medium">Course attribute<input className={input} /></label>
+            <label className="block text-sm font-medium">Second course attribute<input className={input} /></label>
+            <div className="text-sm font-medium">Instruction mode</div>
+            {['In person', 'Hybrid', 'Online asynchronous'].map((m) => (
+              <label key={m} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={mode === m} onChange={() => setMode(mode === m ? '' : m)} />{m}</label>
+            ))}
           </div>
         )}
       </div>
