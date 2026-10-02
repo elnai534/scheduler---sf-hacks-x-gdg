@@ -53,7 +53,7 @@ export default function App() {
       <Header step={step} onStep={setStep} />
       {step === 'pathway' && <Pathway onNext={() => setStep('setup')} />}
       {step === 'setup' && <Setup program={program} setProgram={setProgram} onBack={() => setStep('pathway')} onNext={() => setStep('degree')} onReport={setReport} />}
-      {step === 'degree' && <Degree report={report} program={program} accepted={accepted} onToggle={toggle} onNext={() => { setOpenTab('plan'); setStep('build') }} onBrowse={() => { setOpenTab('courses'); setStep('build') }} />}
+      {step === 'degree' && <Degree report={report} program={program} accepted={accepted} onToggle={toggle} onNext={() => { setOpenTab('plan'); setStep('build') }} />}
       {/* Always mounted (hidden off-step) so tab, preferences, filters and chat survive switching steps. */}
       <div hidden={step !== 'build'}>
         <Build report={report} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={toggle} onApply={apply} onGenerate={generate} onReview={() => setStep('review')}

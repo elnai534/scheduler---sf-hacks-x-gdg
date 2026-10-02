@@ -13,10 +13,12 @@ export interface CourseFilter { q: string; level: Level | ''; subject: string }
 export const EMPTY_FILTER: CourseFilter = { q: '', level: '', subject: '' }
 export const isFiltered = (f: CourseFilter) => !!(f.q.trim() || f.level || f.subject)
 
-/** Pure predicate over anything with code + title. Search matches code or title, case-insensitive. */
+const squash = (s: string) => s.toLowerCase().replace(/\s+/g, '')
+
+/** Pure predicate over anything with code + title. Search matches code or title, ignoring case and spaces ("csc210" finds "CSC 210"). */
 export const matchesCourse = (c: { code: string; title: string }, f: CourseFilter) => {
-  const q = f.q.trim().toLowerCase()
-  return (!q || `${c.code} ${c.title}`.toLowerCase().includes(q)) &&
+  const q = squash(f.q)
+  return (!q || squash(`${c.code} ${c.title}`).includes(q)) &&
     (!f.level || levelOf(c.code) === f.level) &&
     (!f.subject || subjectOf(c.code) === f.subject)
 }

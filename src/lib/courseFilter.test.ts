@@ -40,3 +40,11 @@ describe('filterCourses', () => {
     expect(isFiltered({ ...EMPTY_FILTER, q: ' ' })).toBe(false)
   })
 })
+
+describe('search ignores case and spaces', () => {
+  it('finds a code without the space', () => expect(codes({ q: 'csc300' })).toEqual(['CSC 300']))
+  it('finds a title with extra or missing spaces', () => {
+    expect(codes({ q: '  visual   design ' })).toEqual(['DES 200'])
+    expect(codes({ q: 'GRADUATESEMINAR' })).toEqual(['CSC 700'])
+  })
+})

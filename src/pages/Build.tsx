@@ -53,9 +53,9 @@ export default function Build(p: Props) {
           <h1 className="text-2xl font-bold">Build your semester schedule</h1>
         </div>
         <div className="flex items-center gap-4">
-          <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs">Accepted schedule</span>
+          <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs">Selected schedule</span>
           <div className="border-l border-slate-300 pl-4"><b className="text-lg">{units} units</b> <span className="text-xs text-slate-500">{blocking} blocking</span></div>
-          <button onClick={p.onReview} className="flex items-center gap-2 rounded-lg bg-brand-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Review &amp; export<span className="icon text-lg">chevron_right</span></button>
+          <button onClick={p.onReview} className="flex items-center gap-2 rounded-lg bg-brand-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Export<span className="icon text-lg">chevron_right</span></button>
         </div>
       </div>
       <div className="grid grid-cols-[430px_1fr] overflow-hidden rounded-2xl border border-slate-300 bg-white">
@@ -75,7 +75,7 @@ export default function Build(p: Props) {
         <section className="p-5">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="flex items-center gap-2 text-xl font-bold"><span className="icon text-2xl text-brand-900">event_available</span>Accepted schedule</h2>
+              <h2 className="flex items-center gap-2 text-xl font-bold"><span className="icon text-2xl text-brand-900">event_available</span>Selected schedule</h2>
               <p className="mt-1 text-xs text-slate-500">Only applied sections appear here and in PDF export. Select a class block for details.</p>
             </div>
             <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${blocking ? 'border-yellow-300 bg-yellow-100 text-yellow-800' : 'border-green-200 bg-green-50 text-green-800'}`}>
