@@ -59,7 +59,7 @@ export default function Build(p: Props) {
             {tab === 'plan' && <PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} rec={rec} note={note}
               onGenerate={() => { const r = p.onGenerate(prefs); if (typeof r === 'string') { setNote(r); setRec(null) } else { setNote(''); setRec(r) } }} />}
             {tab === 'courses' && <CoursesTab accepted={p.accepted} onToggle={p.onToggle} report={p.report} />}
-            {tab === 'gemini' && <GeminiTab accepted={p.accepted} onApply={p.onApply} />}
+            {tab === 'gemini' && <GeminiTab accepted={p.accepted} onApply={p.onApply} report={p.report} prefs={prefs} rec={rec} />}
           </div>
         </section>
         <section className="p-5">

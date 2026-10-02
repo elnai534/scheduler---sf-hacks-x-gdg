@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react'
-import { SCHEDULABLE, byId, cid } from '../data'
+import { SCHEDULABLE, byId } from '../data'
+import { buildGeminiContext } from '../lib/geminiContext'
+import type { DprReport } from '../dpr/types'
+import type { Prefs, Recommendation } from '../recommend/recommend'
 import type { Course } from '../data'
 import { askGeminiJson, getGeminiKey, keyIsFromBuild, saveGeminiKey } from '../lib/gemini'
 
@@ -8,7 +11,7 @@ interface Reply { message: string; add?: string[]; remove?: string[] }
 
 const CHIPS = ['Keep me off campus on Fridays', 'Fewer days on campus overall', 'Prefer online classes', 'Add DES 226 if it fits', 'Test Gemini recovery']
 
-export default function GeminiTab({ accepted, onApply }: { accepted: Course[]; onApply: (add: Course[], remove: string[]) => void }) {
+export default function GeminiTab({ accepted, onApply, report, prefs, rec }: { accepted: Course[]; onApply: (add: Course[], remove: string[]) => void; report: DprReport | null; prefs: Prefs; rec: Recommendation | null }) {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -22,15 +25,7 @@ export default function GeminiTab({ accepted, onApply }: { accepted: Course[]; o
     setText('')
     setBusy(true)
     try {
-      const catalog = SCHEDULABLE.map((c) => ({
-        id: cid(c), title: c.title, units: c.units, mode: c.mode, seats: c.seats, permissionRequired: c.permission,
-        meetings: c.meetings.map((m) => `${m.day} ${m.start / 60}-${m.end / 60}h ${m.mode}`),
-      }))
-      const system =
-        'You are a scheduling assistant for SF State students. Planning only, never claim to enroll anyone. ' +
-        'Reply as JSON: {"message": string (short, cite concrete schedule facts), "add": string[] of course ids to add, "remove": string[] of course ids to remove}. ' +
-        'Only use ids from the catalog. Avoid time conflicts. ' +
-        `Catalog: ${JSON.stringify(catalog)}. Currently accepted: ${JSON.stringify(accepted.map(cid))}.`
+      const system = buildGeminiContext({ report, accepted, catalog: SCHEDULABLE, prefs, rec })
       const r = await askGeminiJson<Reply>(system, q)
       const add = (r.add ?? []).map(byId).filter((c): c is Course => Boolean(c))
       onApply(add, r.remove ?? [])
@@ -58,7 +53,7 @@ export default function GeminiTab({ accepted, onApply }: { accepted: Course[]; o
       )}
       {hasKey && !keyIsFromBuild && <button onClick={() => { saveGeminiKey(''); setHasKey(false) }} className="mb-2 self-start text-xs text-slate-500 underline">Remove saved key</button>}
       <div className="min-h-64 flex-1 space-y-2 overflow-y-auto rounded-xl border border-slate-300 bg-white p-3 text-sm">
-        {msgs.length === 0 && <div className="text-slate-500">Ask me to adjust your schedule in plain language, or use a suggestion below.</div>}
+        {msgs.length === 0 && <div className="text-slate-500">Ask me to adjust your schedule in plain language, or use a suggestion below. I can see the courses on your report, what you still need, and which classes you’re eligible for (not your name or ID).</div>}
         {msgs.map((m, i) => (
           <div key={i} className={`max-w-[90%] whitespace-pre-wrap rounded-xl px-3 py-2 ${m.role === 'user' ? 'ml-auto bg-brand-900 text-white' : 'bg-slate-100'}`}>{m.text}</div>
         ))}
