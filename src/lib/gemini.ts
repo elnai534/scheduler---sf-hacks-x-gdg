@@ -3,7 +3,23 @@
  * (20/day). A retired model (404) or a busy/over-quota one (429/503) falls through to the next.
  */
 export const MODELS: string[] = [import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash']
-const RETRYABLE = new Set([404, 429, 500, 503])
+const RETRYABLE = new Set([404, 429, 500, 503, 504])
+
+/** A model that stalls (Google sometimes holds a request ~25s before answering "high demand") gives way to the next one. */
+export const ATTEMPT_TIMEOUT_MS = { lite: 12_000, last: 30_000 }
+const timeoutFor = (index: number) => (index === MODELS.length - 1 ? ATTEMPT_TIMEOUT_MS.last : ATTEMPT_TIMEOUT_MS.lite)
+async function fetchWithTimeout(url: string, init: RequestInit, ms: number): Promise<Response> {
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), ms)
+  try {
+    return await fetch(url, { ...init, signal: ctl.signal })
+  } catch (e) {
+    if (ctl.signal.aborted) return new Response('timeout', { status: 504 })
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 /** Structured output: the model can only answer in this shape. */
 export const RESPONSE_SCHEMA = {
@@ -27,18 +43,18 @@ export async function askGeminiJson<T>(system: string, user: string): Promise<T>
   if (!usesProxy && !KEY) throw new Error('Add your Gemini API key above first.')
   let res: Response | null = null
   let lastErr = ''
-  for (const model of MODELS) {
+  for (const [i, model] of MODELS.entries()) {
     res = usesProxy
-      ? await fetch(PROXY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model, system, user }) })
-      : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      ? await fetchWithTimeout(PROXY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model, system, user }) }, timeoutFor(i))
+      : await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': KEY },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: system }] },
             contents: [{ role: 'user', parts: [{ text: user }] }],
-            generationConfig: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA },
+            generationConfig: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA, maxOutputTokens: 8192 },
           }),
-        })
+        }, timeoutFor(i))
     if (res.status === 429 && (await res.clone().text()).includes('rate_limited')) throw new Error('Too many questions in a short time. Wait a few seconds and try again.')
     if (res.ok || !RETRYABLE.has(res.status)) break
     lastErr = `${model}: ${res.status}`
@@ -75,10 +91,10 @@ async function callModels(system: string, contents: Content[], tools: readonly o
   if (!usesProxy && !KEY) throw new Error('Add your Gemini API key above first.')
   let res: Response | null = null
   let lastErr = ''
-  for (const model of MODELS) {
+  for (const [i, model] of MODELS.entries()) {
     res = usesProxy
-      ? await fetch(PROXY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model, system, contents, tools: [{ functionDeclarations: tools }], ...(forceAnswer ? { toolMode: 'NONE' } : {}) }) })
-      : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      ? await fetchWithTimeout(PROXY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model, system, contents, tools: [{ functionDeclarations: tools }], ...(forceAnswer ? { toolMode: 'NONE' } : {}) }) }, timeoutFor(i))
+      : await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': KEY },
           body: JSON.stringify({
@@ -88,7 +104,7 @@ async function callModels(system: string, contents: Content[], tools: readonly o
             ...(forceAnswer ? { toolConfig: { functionCallingConfig: { mode: 'NONE' } } } : {}),
             generationConfig: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA, maxOutputTokens: 8192 },
           }),
-        })
+        }, timeoutFor(i))
     if (res.status === 429 && (await res.clone().text()).includes('rate_limited')) throw new Error('Too many questions in a short time. Wait a few seconds and try again.')
     if (res.ok || !RETRYABLE.has(res.status)) break
     lastErr = `${model}: ${res.status}`

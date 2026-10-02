@@ -95,6 +95,47 @@ describe('askGeminiAgent (tool loop)', () => {
   })
 })
 
+describe('per-model timeout', () => {
+  const hang = () => vi.fn().mockImplementationOnce((_url: string, init: RequestInit) => new Promise((_res, rej) => init.signal!.addEventListener('abort', () => rej(new DOMException('Aborted', 'AbortError')))))
+  it('gives up on a stalled model after 12 seconds and uses the next one', async () => {
+    vi.useFakeTimers()
+    try {
+      const f = hang().mockResolvedValueOnce(ok('{"message":"from second"}'))
+      vi.stubGlobal('fetch', f)
+      const pending = g.askGeminiJson<{ message: string }>('s', 'u')
+      await vi.advanceTimersByTimeAsync(11_999)
+      expect(f).toHaveBeenCalledTimes(1)
+      await vi.advanceTimersByTimeAsync(2)
+      await expect(pending).resolves.toEqual({ message: 'from second' })
+      expect(String(f.mock.calls[1][0])).toContain(g.MODELS[1])
+    } finally { vi.useRealTimers() }
+  })
+  it('applies the same timeout inside the tool loop', async () => {
+    vi.useFakeTimers()
+    try {
+      const f = hang().mockResolvedValueOnce(ok('{"message":"ok"}'))
+      vi.stubGlobal('fetch', f)
+      const pending = g.askGeminiAgent({ system: 's', question: 'q', tools: [{ name: 't', description: 'd' }], run: vi.fn() })
+      await vi.advanceTimersByTimeAsync(12_001)
+      await expect(pending).resolves.toEqual({ message: 'ok' })
+    } finally { vi.useRealTimers() }
+  })
+  it('reports an error when every model stalls', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation((_u: string, init: RequestInit) => new Promise((_r, rej) => init.signal!.addEventListener('abort', () => rej(new DOMException('Aborted', 'AbortError'))))))
+      const pending = g.askGeminiJson('s', 'u')
+      const assertion = expect(pending).rejects.toThrow(/504/)
+      await vi.advanceTimersByTimeAsync(12_000 + 12_000 + 30_000 + 10)
+      await assertion
+    } finally { vi.useRealTimers() }
+  })
+  it('does not treat an ordinary network error as a timeout', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    await expect(g.askGeminiJson('s', 'u')).rejects.toThrow(/Failed to fetch/)
+  })
+})
+
 describe('askGeminiJson via the server-side proxy', () => {
   it('sends tool conversations to the proxy as contents + tools, with no key', async () => {
     vi.stubEnv('VITE_GEMINI_PROXY_URL', 'https://proxy.example/')
