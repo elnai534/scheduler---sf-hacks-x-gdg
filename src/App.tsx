@@ -10,6 +10,7 @@ import type { DprReport } from './dpr/types'
 import Setup from './pages/Setup'
 import type { Program } from './pages/Setup'
 import { CATALOG, SCHEDULABLE, byId, cid, conflictsWith } from './data'
+import { toggleId } from './lib/selection'
 import { recommend } from './recommend/recommend'
 import type { Prefs, Recommendation } from './recommend/recommend'
 import type { Course } from './data'
@@ -24,7 +25,7 @@ export default function App() {
 
   const accepted = ids.map(byId).filter((c): c is Course => Boolean(c))
 
-  const toggle = (c: Course) => setIds((cur) => (cur.includes(cid(c)) ? cur.filter((x) => x !== cid(c)) : [...cur, cid(c)]))
+  const toggle = (c: Course) => setIds((cur) => toggleId(cur, cid(c)))
   const apply = (add: Course[], remove: string[]) =>
     setIds((cur) => [...cur.filter((x) => !remove.includes(x)), ...add.map(cid).filter((x) => !cur.includes(x) || remove.includes(x))])
 

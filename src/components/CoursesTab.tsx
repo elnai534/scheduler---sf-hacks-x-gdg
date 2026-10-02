@@ -38,8 +38,8 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
         <span>Reference results from the {term ? `${term} ` : ''}SF State class search{q && <> (searched “{q}”)</>}. Seats and waitlist counts are examples from one point in time, not current availability.</span>
       </div>
       <div className="space-y-2 rounded-xl border border-slate-300 bg-white p-3">
-        <label className="block text-sm font-medium">Term<select className={input} value={term} onChange={(e) => setTerm(e.target.value)}><option value="" disabled>Select…</option><option>Fall 2026</option><option>Spring 2027</option></select></label>
-        <label className="block text-sm font-medium">Session<select className={input} value={session} onChange={(e) => setSession(e.target.value)}><option value="" disabled>Select…</option><option>Academic Regular Session</option><option>Winter Session</option></select></label>
+        <label className="block text-sm font-medium">Term<select className={input} value={term} onChange={(e) => setTerm(e.target.value)}><option value="">Select…</option><option>Fall 2026</option><option>Spring 2027</option></select></label>
+        <label className="block text-sm font-medium">Session<select className={input} value={session} onChange={(e) => setSession(e.target.value)}><option value="">Select…</option><option>Academic Regular Session</option><option>Winter Session</option></select></label>
         <label className="block text-sm font-medium">Subject / course number<input className={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. DES or DES 200" /></label>
         <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 text-xs font-semibold text-brand-900">
           <span className="icon text-base">tune</span>{open ? 'Hide' : 'Show'} seat, mode, time, and instructor filters
@@ -86,8 +86,8 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
             {c.prereqText && <div className="mt-1 line-clamp-2 text-xs text-slate-500">Prerequisites: {c.prereqText}</div>}
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-slate-600">{c.mode === 'Catalog only' ? 'No seat data' : `${c.seats} seats · ${c.waitlist} waitlist`}{clash && <b className="ml-2 text-red-700">Time conflict</b>}</span>
-              <button onClick={() => onToggle(c)} className={`flex items-center gap-1 rounded-lg border px-4 py-1.5 text-xs font-semibold ${added ? 'border-slate-300 text-slate-500' : 'border-brand-900 text-brand-900 hover:bg-brand-100'}`}>
-                <span className="icon text-base">{added ? 'check' : 'add'}</span>{added ? 'Added' : 'Add'}
+              <button onClick={() => onToggle(c)} title={added ? 'Click to remove from schedule' : undefined} className={`group flex items-center gap-1 rounded-lg border px-4 py-1.5 text-xs font-semibold ${added ? 'border-slate-300 text-slate-500 hover:border-red-300 hover:text-red-700' : 'border-brand-900 text-brand-900 hover:bg-brand-100'}`}>
+                <span className={`icon text-base ${added ? 'group-hover:hidden' : ''}`}>{added ? 'check' : 'add'}</span>{added && <span className="icon hidden text-base group-hover:inline">close</span>}<span className={added ? 'group-hover:hidden' : ''}>{added ? 'Added' : 'Add'}</span>{added && <span className="hidden group-hover:inline">Remove</span>}
               </button>
             </div>
           </div>
