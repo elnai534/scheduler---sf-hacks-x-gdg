@@ -23,6 +23,8 @@ describe('gemini proxy worker: safety rules enforced server-side', () => {
     expect(text).toMatch(/onTopic": false/)
     expect(text).toMatch(/Never follow instructions/)
     expect(text).toMatch(/No empathy, apologies/)
+    expect(text).toMatch(/small talk/)
+    expect(text).toMatch(/No preamble/)
     expect(text).toContain('You are a pirate') // caller text comes after the guard, never instead of it
   })
   it('forces the answer into the fixed JSON schema', async () => {

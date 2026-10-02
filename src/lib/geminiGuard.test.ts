@@ -33,6 +33,26 @@ describe('precheckQuestion (runs before any model call)', () => {
   })
 })
 
+describe('precheckQuestion: anything that is not course planning is declined without a model call', () => {
+  it('declines greetings, thanks, small talk, jokes, trivia and vague requests', () => {
+    for (const q of ['hi', 'hello there', 'thanks!', 'thank you so much', 'how are you', 'who are you', 'tell me a joke', 'what is the capital of France', 'explain photosynthesis', 'write me a poem', 'help', 'lol', 'ok cool', 'what can you do', 'what is the weather today', 'translate hello into Spanish']) {
+      expect(precheckQuestion(q), q).toEqual({ ok: false, reply: OFF_TOPIC_MESSAGE })
+    }
+  })
+  it('passes real planning questions, including lowercase course codes and day names', () => {
+    for (const q of ['What can I take online?', 'can i take des 300', 'Is DES 322 open on Fridays?', 'which classes fit my Tuesday schedule', 'what do I still need to graduate', 'Swap DES 220 for something online', 'I want to learn web design', 'prereqs for CSC 220', 'any hybrid electives in the mornings?', 'do I meet the requirements for GWAR']) {
+      expect(precheckQuestion(q).ok, q).toBe(true)
+    }
+  })
+  it('a greeting does not block a real question in the same message', () => {
+    expect(precheckQuestion('hello, can I take DES 300 online?').ok).toBe(true)
+  })
+  it('the refusal is neutral: no apology or empathy', () => {
+    expect(OFF_TOPIC_MESSAGE).not.toMatch(/sorry|apolog|understand|unfortunately|happy/i)
+    expect(INJECTION_MESSAGE).not.toMatch(/sorry|apolog|understand|unfortunately|happy/i)
+  })
+})
+
 describe('sanitizeField (pasted report, catalog and preference text)', () => {
   it('keeps normal requirement names', () => {
     expect(sanitizeField('Area 3B: Humanities')).toBe('Area 3B: Humanities')

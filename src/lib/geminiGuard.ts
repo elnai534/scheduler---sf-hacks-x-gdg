@@ -3,7 +3,7 @@ import { cid } from '../data'
 import { eligibility } from '../dag/graph'
 
 export const OFF_TOPIC_MESSAGE =
-  'I can only help with planning your SF State courses: requirements, prerequisites, eligibility and your schedule. Try asking about those.'
+  'This assistant only handles SF State course planning: requirements, prerequisites, eligibility and your schedule. Example: "What can I take online?"'
 export const INJECTION_MESSAGE = 'I can’t change my instructions or share them. Ask me about your courses, requirements or schedule instead.'
 export const MAX_QUESTION = 500
 const MAX_MESSAGE = 1200
@@ -34,6 +34,18 @@ const MATH_ONLY_RE = new RegExp(
   'i',
 )
 
+/**
+ * A question must mention something about course planning (a planning word or a course code) to reach the model.
+ * Greetings, thanks, jokes, trivia, small talk and "help" alone are declined locally with no model call.
+ */
+const DAY = String.raw`(?:mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(?:day)?s?`
+const PLAN_CUES = new RegExp(
+  String.raw`\b(?:courses?|class(?:es)?|schedul\w*|semesters?|terms?|units?|credits?|requirements?|prereq\w*|pre-req\w*|eligib\w*|enrol\w*|regist\w*|take|taking|taken|add|drop|remove|swap|replace|online|in[- ]person|hybrid|async\w*|sync\w*|seats?|waitlist\w*|sections?|${DAY}|mornings?|afternoons?|evenings?|graduat\w*|degree|majors?|minors?|ge|electives?|instructors?|professors?|conflicts?|overlap\w*|workload|report|dpr|gwar|plan|plans|planning|recommend\w*|suggest\w*|remaining|fulfil\w*|satisf\w*|learn\w*|skills?|fits?|campus|catalog|bulletin|prerequisites?|credit|catalogue|advisor)\b`,
+  'i',
+)
+const CODE_CUE = new RegExp(String.raw`\b[A-Z]{2,5} ?\d{2,3}[A-Z]{0,3}\b|\b(?:des|csc|math|biol|ais|adm|esm|engr|phys|chem|comm|econ|id) ?\d{3}[a-z]{0,3}\b`, 'i')
+const hasPlanningCue = (q: string) => PLAN_CUES.test(q) || CODE_CUE.test(q)
+
 const CONTROL = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u200b-\\u200f\\u2028-\\u202e\\u2060\\ufeff]', 'g')
 
 /** Trim, drop control/invisible/bidi characters and angle brackets, cap length. */
@@ -49,6 +61,7 @@ export function precheckQuestion(raw: string): Precheck {
   if (!q) return { ok: false, reply: 'Type a question about your courses or schedule.' }
   if (INJECTION_RE.test(q)) return { ok: false, reply: INJECTION_MESSAGE }
   if (MATH_ONLY_RE.test(q)) return { ok: false, reply: OFF_TOPIC_MESSAGE }
+  if (!hasPlanningCue(q)) return { ok: false, reply: OFF_TOPIC_MESSAGE }
   return { ok: true, question: q }
 }
 
