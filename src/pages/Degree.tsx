@@ -9,10 +9,10 @@ const ICONS = [['check_circle', 'Completed', 'text-emerald-700'], ['schedule', '
 export default function Degree({ program, report, accepted, onToggle, onNext }: { program: Program; report: DprReport | null; accepted: Course[]; onToggle: (c: Course) => void; onNext: () => void }) {
   const counts = report
     ? [
-        report.courses.filter((c) => c.status === 'completed' || c.status === 'transfer').length,
-        report.courses.filter((c) => c.status === 'inProgress').length,
+        report.courses.filter((c) => c.status === 'completed' || c.status === 'transfer'),
+        report.courses.filter((c) => c.status === 'inProgress'),
       ]
-    : [2, 1]
+    : [[], []]
   const open = report ? openRequirements(report) : []
   const sections = [...new Set(open.map((q) => q.section))]
   const title = report ? report.plans.map((p) => p.replace(/-(BS|BA|MN)$/, (m) => (m === '-MN' ? ' (minor)' : m === '-BS' ? ', B.S.' : ', B.A.'))).join(' · ') : [program.major || 'Program not selected', program.degree === 'Bachelor of Arts' ? 'B.A.' : program.degree ? 'B.S.' : ''].filter(Boolean).join(', ')
@@ -51,7 +51,7 @@ export default function Degree({ program, report, accepted, onToggle, onNext }: 
           <section className="rounded-xl border border-slate-200 bg-white p-5">
             <h2 className="font-bold">Course status</h2>
             <ul className="mt-4 space-y-3">{ICONS.map(([ic, l, c], i) => (
-              <li key={l} className="flex items-center gap-3"><span className={`icon grid size-8 place-items-center rounded-lg bg-slate-100 text-lg ${c}`}>{ic}</span><span className="flex-1 text-sm font-medium">{l}</span><b>{counts[i]}</b></li>))}</ul>
+              <li key={l} title={counts[i].map((c) => `${c.code} ${c.title}`).join("\n") || "None yet"} className="flex items-center gap-3"><span className={`icon grid size-8 place-items-center rounded-lg bg-slate-100 text-lg ${c}`}>{ic}</span><span className="flex-1 text-sm font-medium">{l}</span><b>{counts[i].length}</b></li>))}</ul>
           </section>
           <button onClick={onNext} className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 py-3 text-sm font-semibold text-white hover:bg-brand-700">Continue to Schedule<span className="icon text-lg">arrow_forward</span></button>
         </aside>

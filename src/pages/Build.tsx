@@ -44,7 +44,7 @@ export default function Build(p: Props) {
         </div>
         <div className="flex items-center gap-4">
           <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs">Selected schedule</span>
-          <div className="border-l border-slate-300 pl-4"><b className="text-lg">{units} units</b> <span className="text-xs text-slate-500">{blocking} blocking</span></div>
+          <div className="border-l border-slate-300 pl-4"><b className="text-lg">{units} units</b></div>
           <button onClick={() => window.print()} className="flex items-center gap-2 rounded-lg bg-brand-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Export<span className="icon text-lg">chevron_right</span></button>
         </div>
       </div>
