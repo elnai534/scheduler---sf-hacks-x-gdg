@@ -34,6 +34,7 @@ body {
   body * { visibility: hidden; }
   .print-area, .print-area * { visibility: visible; }
   .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+  .print-area .max-h-\[480px\] { max-height: none; overflow: visible; }
 }
 
 /* CTAs pop on hover so they read as clickable. */

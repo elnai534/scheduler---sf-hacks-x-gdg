@@ -3,7 +3,7 @@ import type { Course } from '../data'
 
 const START = 8 * 60
 const ROW = 44
-const HOURS = Array.from({ length: 10 }, (_, i) => 8 + i)
+const HOURS = Array.from({ length: 16 }, (_, i) => 8 + i) // 8 AM to 11 PM
 
 export default function Calendar({
   courses, selected, onSelect,
@@ -15,11 +15,11 @@ export default function Calendar({
         <div className="py-2.5 text-slate-500">Time</div>
         {DAYS.map((d) => <div key={d} className="border-l border-slate-300 py-2.5">{d}</div>)}
       </div>
-      <div className="relative grid grid-cols-[72px_repeat(5,1fr)]" style={{ height: HOURS.length * ROW }}>
+      <div className="max-h-[480px] overflow-y-auto"><div className="relative grid grid-cols-[72px_repeat(5,1fr)]" style={{ height: HOURS.length * ROW }}>
         <div>
           {HOURS.map((h) => (
-            <div key={h} style={{ height: ROW }} className="pr-2 text-right text-[11px] text-slate-500">
-              <span className="relative -top-1.5">{label(h)}</span>
+            <div key={h} style={{ height: ROW }} className="pr-2 pt-1 text-right text-[11px] text-slate-500">
+              <span>{label(h)}</span>
             </div>
           ))}
         </div>
@@ -61,7 +61,7 @@ export default function Calendar({
         {HOURS.slice(1).map((h) => (
           <div key={h} className="pointer-events-none absolute left-[72px] right-0 border-t border-slate-100" style={{ top: (h - 8) * ROW }} />
         ))}
-      </div>
+      </div></div>
     </div>
   )
 }

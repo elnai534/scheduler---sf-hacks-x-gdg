@@ -31,8 +31,7 @@ export default function Degree({ program, setProgram, report, accepted, onToggle
       <div className="mt-5 grid grid-cols-[1fr_320px] gap-5">
         <div className="space-y-4">
           <section className="rounded-xl border border-slate-200 bg-white p-5">
-            <div className="flex items-start justify-between"><h2 className="text-xl font-bold">{title}</h2>
-              <span className="flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold"><span className="icon text-sm">{report ? 'description' : 'person'}</span>{report ? 'From report' : 'Student entered'}</span></div>
+            <div className="flex items-start justify-between"><h2 className="text-xl font-bold">{title}</h2></div>
             <div className="mt-2 text-sm text-slate-600">{report ? `${report.career} · ${report.program} · Current term ${report.lastTerm}` : `${program.career || 'Career not selected'} · ${program.minor ? `Minor: ${program.minor}` : 'No minor declared'}`}</div>
             <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
               <span className="text-slate-600">{[program.major, program.degree, program.minor && `Minor: ${program.minor}`].filter(Boolean).join(' · ') || 'No program entered manually'}</span>
