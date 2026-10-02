@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { SCHEDULABLE, byId, cid } from '../data'
 import type { Course } from '../data'
-import { askGeminiJson } from '../lib/gemini'
+import { askGeminiJson, getGeminiKey, keyIsFromBuild, saveGeminiKey } from '../lib/gemini'
 
 interface Msg { role: 'user' | 'ai'; text: string }
 interface Reply { message: string; add?: string[]; remove?: string[] }
@@ -13,6 +13,8 @@ export default function GeminiTab({ accepted, onApply }: { accepted: Course[]; o
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const end = useRef<HTMLDivElement>(null)
+  const [hasKey, setHasKey] = useState(Boolean(getGeminiKey()))
+  const [keyDraft, setKeyDraft] = useState('')
 
   async function send(q: string) {
     if (!q.trim() || busy) return
@@ -44,6 +46,17 @@ export default function GeminiTab({ accepted, onApply }: { accepted: Course[]; o
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-3 flex items-center gap-2 font-semibold"><span className="icon text-xl text-brand-900">auto_awesome</span>Ask Gemini</div>
+      {!hasKey && (
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <div className="font-semibold">Add a Gemini API key to chat</div>
+          <p className="mt-1">Get a free key at <a className="underline" href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">aistudio.google.com/apikey</a>. It is saved only in this browser and sent only to Google.</p>
+          <form className="mt-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); saveGeminiKey(keyDraft); setHasKey(Boolean(keyDraft.trim())); setKeyDraft('') }}>
+            <input type="password" autoComplete="off" value={keyDraft} onChange={(e) => setKeyDraft(e.target.value)} placeholder="Paste API key" className="flex-1 rounded-lg border border-amber-300 bg-white px-2 py-1.5 outline-brand-700" />
+            <button disabled={!keyDraft.trim()} className="rounded-lg bg-brand-900 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Save</button>
+          </form>
+        </div>
+      )}
+      {hasKey && !keyIsFromBuild && <button onClick={() => { saveGeminiKey(''); setHasKey(false) }} className="mb-2 self-start text-xs text-slate-500 underline">Remove saved key</button>}
       <div className="min-h-64 flex-1 space-y-2 overflow-y-auto rounded-xl border border-slate-300 bg-white p-3 text-sm">
         {msgs.length === 0 && <div className="text-slate-500">Ask me to adjust your schedule in plain language, or use a suggestion below.</div>}
         {msgs.map((m, i) => (

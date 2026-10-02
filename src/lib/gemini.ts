@@ -1,10 +1,15 @@
 const MODEL = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-2.5-flash'
-const KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
+const ENV_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
+const STORAGE = 'scheduler.geminiKey'
 
-export const hasGeminiKey = Boolean(KEY)
+/** Build-time key (local dev only) wins; otherwise the key the user pasted, kept only in this browser. */
+export const getGeminiKey = (): string => ENV_KEY || (typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE) ?? '' : '')
+export const saveGeminiKey = (k: string) => { if (k.trim()) localStorage.setItem(STORAGE, k.trim()); else localStorage.removeItem(STORAGE) }
+export const keyIsFromBuild = Boolean(ENV_KEY)
 
 export async function askGeminiJson<T>(system: string, user: string): Promise<T> {
-  if (!KEY) throw new Error('Gemini key missing. Add VITE_GEMINI_API_KEY to .env.local and restart the dev server.')
+  const KEY = getGeminiKey()
+  if (!KEY) throw new Error('Add your Gemini API key above first.')
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
     {
