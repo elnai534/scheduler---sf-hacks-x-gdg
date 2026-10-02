@@ -1,6 +1,6 @@
 import type { Course } from '../data'
-import { cid, countConflicts, range } from '../data'
-import { eligibility } from '../dag/graph'
+import { CATALOG, cid, countConflicts, range } from '../data'
+import { buildGraph, eligibility } from '../dag/graph'
 import { completedCodes, inProgressCodes, openRequirements } from '../dpr/parse'
 import { COURSE_CODE, sanitizeField } from './geminiGuard'
 import type { DprReport } from '../dpr/types'
@@ -72,6 +72,24 @@ export function buildGeminiContext({ report, accepted, catalog, prefs, rec }: In
 
   const fills = new Map<string, string[]>()
   if (report) for (const q of openRequirements(report)) for (const o of q.options) fills.set(o.code, [...(fills.get(o.code) ?? []), q.name])
+  // The shape of the prerequisite graph, limited to what matters to this student: still-needed courses
+  // and the missing courses behind them. "needs" is AND of OR-groups; ✓ = taken or in progress.
+  if (report) {
+    const graph = buildGraph(CATALOG.map((c) => c.node).filter((n, i, a) => a.findIndex((m) => m.code === n.code) === i))
+    const wanted = new Set(openRequirements(report).flatMap((q) => q.options.map((o) => o.code)).filter((c) => COURSE_CODE.test(c) && !assumed.has(c)))
+    const frontier = [...wanted]
+    for (const code of frontier) {
+      for (const g of graph.nodes.get(code)?.prereqGroups ?? []) for (const p of g.anyOf) if (!assumed.has(p) && !wanted.has(p)) { wanted.add(p); frontier.push(p) }
+    }
+    const mark = (c: string) => `${c}${assumed.has(c) ? '✓' : ''}`
+    const rows = [...wanted].sort().slice(0, 70).map((code) => {
+      const node = graph.nodes.get(code)
+      const needs = node?.prereqGroups.length ? node.prereqGroups.map((g) => `(${g.anyOf.map(mark).join(' OR ')})`).join(' AND ') : 'nothing in the catalog'
+      const opens = (graph.out.get(code) ?? []).filter((c) => wanted.has(c))
+      return `- ${code} needs ${needs}${opens.length ? ` | unlocks ${opens.join(', ')}` : ''}`
+    })
+    out.push('', '# PREREQUISITE GRAPH (courses still needed and the missing courses behind them; ✓ = taken or in progress)', ...rows)
+  }
   out.push('</student_data>', '', '<catalog>', '# CATALOG (id | title | units | mode | days | seats | status | fills | about)')
   for (const c of catalog) {
     const el = eligibility(c.node, assumed, doing)

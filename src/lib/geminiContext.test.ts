@@ -83,6 +83,17 @@ describe('buildGeminiContext', () => {
     const odd = readFileSync(new URL('../dpr/fixtures/sample-dpr.txt', import.meta.url), 'utf8').replace(/^DES 322 DIGITAL DESIGN FOUNDATIONS II 3\.00 Fall, Winter, Spring,$/m, 'DES 322 DIGITAL DESIGN FOUNDATIONS II 3.00 Fall,')
     expect(buildGeminiContext({ report: parseDpr(odd), accepted, catalog: SCHEDULABLE, prefs, rec: null })).toContain('# OPEN REQUIREMENTS')
   })
+  it('shows the shape of the prerequisite graph for the courses still needed', () => {
+    const g = ctx.split('# PREREQUISITE GRAPH')[1].split('</student_data>')[0]
+    expect(g).toMatch(/- DES 322 needs \(DES 222\)/)
+    expect(g).toMatch(/- DES 222 needs[^\n]*\| unlocks DES 322/)
+    expect(g).toMatch(/- DES 300 needs \(DES 200✓\) AND \(DES 356✓\) AND \(DES 370✓\)/) // taken courses are marked
+    expect(g).toMatch(/- DES 505 needs \(DES 200✓\) AND \(DES 322\) AND \(DES 324GW\) AND \(DES 356✓\) AND \(DES 370✓\) AND \(DES 410 OR DES 425\)/) // AND of OR-groups
+    expect(g.split('\n').filter((l) => l.startsWith('- ')).length).toBeLessThanOrEqual(70)
+  })
+  it('has no graph section without a report', () => {
+    expect(buildGeminiContext({ report: null, accepted: [], catalog: SCHEDULABLE.slice(0, 3), prefs: DEFAULT_PREFS, rec: null })).not.toContain('PREREQUISITE GRAPH')
+  })
   it('is deterministic', () => {
     expect(buildGeminiContext({ report, accepted, catalog: SCHEDULABLE, prefs, rec })).toBe(ctx)
   })
