@@ -16,7 +16,78 @@ beforeEach(async () => {
 })
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 
+const fc = (name: string, args: object, id = 'c1', sig = 'sig-1') => new Response(JSON.stringify({ candidates: [{ content: { role: 'model', parts: [{ functionCall: { name, args, id }, thoughtSignature: sig }] } }] }), { status: 200 })
+
+describe('askGeminiAgent (tool loop)', () => {
+  const tools = [{ name: 'path_to', description: 'd' }]
+  it('runs the requested tool in the browser, sends the result back with the signature unchanged, then returns the final JSON', async () => {
+    const f = vi.fn().mockResolvedValueOnce(fc('path_to', { code: 'DES 505' })).mockResolvedValueOnce(ok('{"onTopic":true,"message":"done","add":[],"remove":[]}'))
+    vi.stubGlobal('fetch', f)
+    const run = vi.fn().mockReturnValue({ steps: ['DES 222'] })
+    const seen: string[] = []
+    const out = await g.askGeminiAgent<{ message: string }>({ system: 's', question: 'q', tools, run, onTool: (n) => seen.push(n) })
+    expect(out.message).toBe('done')
+    expect(run).toHaveBeenCalledWith('path_to', { code: 'DES 505' })
+    expect(seen).toEqual(['path_to'])
+    const second = JSON.parse(String((f.mock.calls[1][1] as RequestInit).body))
+    expect(second.contents).toHaveLength(3)
+    expect(second.contents[1].parts[0].thoughtSignature).toBe('sig-1')
+    expect(second.contents[2]).toEqual({ role: 'user', parts: [{ functionResponse: { name: 'path_to', id: 'c1', response: { steps: ['DES 222'] } } }] })
+    expect(second.tools).toEqual([{ functionDeclarations: tools }])
+  })
+  it('turns a tool that throws into an error result instead of failing the chat', async () => {
+    const f = vi.fn().mockResolvedValueOnce(fc('path_to', {})).mockResolvedValueOnce(ok('{"onTopic":true,"message":"ok","add":[],"remove":[]}'))
+    vi.stubGlobal('fetch', f)
+    await g.askGeminiAgent({ system: 's', question: 'q', tools, run: () => { throw new Error('boom') } })
+    expect(JSON.parse(String((f.mock.calls[1][1] as RequestInit).body)).contents[2].parts[0].functionResponse.response).toEqual({ error: 'tool failed' })
+  })
+  it('wraps a non-object tool result', async () => {
+    const f = vi.fn().mockResolvedValueOnce(fc('path_to', {})).mockResolvedValueOnce(ok('{"message":"ok"}'))
+    vi.stubGlobal('fetch', f)
+    await g.askGeminiAgent({ system: 's', question: 'q', tools, run: () => 5 })
+    expect(JSON.parse(String((f.mock.calls[1][1] as RequestInit).body)).contents[2].parts[0].functionResponse.response).toEqual({ result: 5 })
+  })
+  it('stops after the step limit instead of looping forever', async () => {
+    const f = vi.fn().mockImplementation(() => Promise.resolve(fc('path_to', {})))
+    vi.stubGlobal('fetch', f)
+    const run = vi.fn().mockReturnValue({})
+    await expect(g.askGeminiAgent({ system: 's', question: 'q', tools, run, maxSteps: 3 })).rejects.toThrow(/too many lookups/)
+    expect(run).toHaveBeenCalledTimes(3)
+    expect(f).toHaveBeenCalledTimes(4)
+  })
+  it('answers directly when no tool is needed (one call)', async () => {
+    const f = vi.fn().mockResolvedValue(ok('{"onTopic":true,"message":"direct","add":[],"remove":[]}'))
+    vi.stubGlobal('fetch', f)
+    const run = vi.fn()
+    expect((await g.askGeminiAgent<{ message: string }>({ system: 's', question: 'q', tools, run })).message).toBe('direct')
+    expect(run).not.toHaveBeenCalled()
+    expect(f).toHaveBeenCalledTimes(1)
+  })
+  it('falls back to the next model mid-loop when one is busy', async () => {
+    const f = vi.fn().mockResolvedValueOnce(new Response('busy', { status: 503 })).mockResolvedValueOnce(ok('{"message":"ok"}'))
+    vi.stubGlobal('fetch', f)
+    await expect(g.askGeminiAgent({ system: 's', question: 'q', tools, run: vi.fn() })).resolves.toEqual({ message: 'ok' })
+    expect(String(f.mock.calls[1][0])).toContain(g.MODELS[1])
+  })
+  it('malformed final text gets the clear message', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok('{"message": "cut')))
+    await expect(g.askGeminiAgent({ system: 's', question: 'q', tools, run: vi.fn() })).rejects.toThrow(/cut off or malformed/)
+  })
+})
+
 describe('askGeminiJson via the server-side proxy', () => {
+  it('sends tool conversations to the proxy as contents + tools, with no key', async () => {
+    vi.stubEnv('VITE_GEMINI_PROXY_URL', 'https://proxy.example/')
+    vi.resetModules()
+    const m = await import('./gemini.ts')
+    m.saveGeminiKey('')
+    const f = vi.fn().mockResolvedValue(ok('{"message":"x"}'))
+    vi.stubGlobal('fetch', f)
+    await m.askGeminiAgent({ system: 's', question: 'q', tools: [{ name: 't', description: 'd' }], run: vi.fn() })
+    const body = JSON.parse(String((f.mock.calls[0][1] as RequestInit).body))
+    expect(Object.keys(body).sort()).toEqual(['contents', 'model', 'system', 'tools'])
+    expect(JSON.stringify((f.mock.calls[0][1] as RequestInit).headers)).not.toMatch(/api-key/i)
+  })
   it('posts to the proxy with no key and hides the key box', async () => {
     vi.stubEnv('VITE_GEMINI_PROXY_URL', 'https://proxy.example/')
     vi.resetModules()

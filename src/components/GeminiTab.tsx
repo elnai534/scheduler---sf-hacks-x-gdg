@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react'
-import { SCHEDULABLE } from '../data'
+import { CATALOG, SCHEDULABLE } from '../data'
 import { buildGeminiContext } from '../lib/geminiContext'
 import { precheckQuestion, sanitizeReply } from '../lib/geminiGuard'
 import { completedCodes, inProgressCodes } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
 import type { Prefs, Recommendation } from '../recommend/recommend'
 import type { Course } from '../data'
-import { askGeminiJson, getGeminiKey, keyIsFromBuild, saveGeminiKey, usesProxy } from '../lib/gemini'
+import { askGeminiAgent, getGeminiKey, keyIsFromBuild, saveGeminiKey, usesProxy } from '../lib/gemini'
+import { TOOL_DECLARATIONS, runTool } from '../lib/geminiTools'
 
 interface Msg { role: 'user' | 'ai'; text: string }
 
@@ -21,6 +22,7 @@ export default function GeminiTab({ accepted, onApply, report, prefs, rec }: { a
   const [keyDraft, setKeyDraft] = useState('')
 
   const lastSent = useRef(0)
+  const [lookups, setLookups] = useState<string[]>([])
 
   async function send(raw: string) {
     if (!raw.trim() || busy) return
@@ -30,10 +32,17 @@ export default function GeminiTab({ accepted, onApply, report, prefs, rec }: { a
     if (Date.now() - lastSent.current < 2000) { setMsgs((m) => [...m, { role: 'user', text: pre.question }, { role: 'ai', text: 'Wait a few seconds before the next question.' }]); return }
     lastSent.current = Date.now()
     setMsgs((m) => [...m, { role: 'user', text: pre.question }])
+    setLookups([])
     setBusy(true)
     try {
       const system = buildGeminiContext({ report, accepted, catalog: SCHEDULABLE, prefs, rec })
-      const raw = await askGeminiJson<unknown>(system, `<question>${pre.question}</question>`)
+      const raw = await askGeminiAgent<unknown>({
+        system,
+        question: `<question>${pre.question}</question>`,
+        tools: TOOL_DECLARATIONS,
+        run: (name, args) => runTool(name, args, { report, accepted, schedulable: SCHEDULABLE, all: CATALOG, prefs }),
+        onTool: (name) => setLookups((l) => [...l, name.replace(/_/g, ' ')]),
+      })
       const doing = report ? inProgressCodes(report) : new Set<string>()
       const assumed = new Set([...(report ? completedCodes(report) : []), ...doing])
       const safe = sanitizeReply(raw, { catalog: SCHEDULABLE, accepted, assumed, doing })
@@ -66,7 +75,7 @@ export default function GeminiTab({ accepted, onApply, report, prefs, rec }: { a
         {msgs.map((m, i) => (
           <div key={i} className={`max-w-[90%] whitespace-pre-wrap rounded-xl px-3 py-2 ${m.role === 'user' ? 'ml-auto bg-brand-900 text-white' : 'bg-slate-100'}`}>{m.text}</div>
         ))}
-        {busy && <div className="text-slate-500">Thinking…</div>}
+        {busy && <div className="text-slate-500">{lookups.length ? `Checking the prerequisite graph (${[...new Set(lookups)].join(', ')})…` : 'Thinking…'}</div>}
         <div ref={end} />
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
