@@ -32,3 +32,16 @@ describe('real-world paste noise', () => {
     expect(sig(parseDpr(lead))).toBe(sig(clean))
   })
 })
+
+describe('layouts seen in real printed reports', () => {
+  it('a side-by-side summary box leaves trailing text on the Program line', () => {
+    const r = parseDpr(sample.replace(/^Program:.*$/m, 'Program: Undergrad Degree-FA Fall 2026 Academic Standing:'))
+    expect(r.program).toBe('Undergrad Degree-FA')
+  })
+  it('"Courses Not Used" (withdrawn work) is not attached to the previous requirement', () => {
+    const tail = `${sample}\nCourses Not Used\nThe following courses were used to satisfy this requirement:\nCourse Description Units When Grade Requirement\nDesignation Status\nBIOL 220 PRINCIPLES OF HUMAN ANATOMY 4.00 Fall 2026 W GE 5B\nView All | First 1 of 1 Last\n`
+    const r = parseDpr(tail)
+    expect(r.requirements.flatMap((q) => q.satisfiedBy).map((c) => c.code)).not.toContain('BIOL 220')
+    expect(sig(r)).toBe(sig(clean))
+  })
+})

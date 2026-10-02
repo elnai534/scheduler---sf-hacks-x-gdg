@@ -8,7 +8,7 @@ const TAG = /^\[([RG]\d+)(?:\s*\/\s*(L\d+))?\]$/
 const TERM = /^(Fall|Spring|Summer|Winter) \d{4}/
 const NOT_HEADING = /^(Units Required|Total Units Required|Note:|Complete |One course|Refer to|A minimum|The University|All courses|This area|Student |If you|Course Description|View |Units:|Courses:|GPA:|The following|To earn|Important|Undergraduate Degree|College of|1\.|2\.|3\.|Planned|Requirement \(|Career:|Program:|Plan:|Graduation$|Status:|Not Applied|Current Academic|Last Term|General Information|Helpful|San Francisco)/
 /** Printed-page chrome: repeating header, URL/page footer, timestamps. Must never become a heading or table row. */
-const PAGE_NOISE = /^(My Academic Requirements\b|https?:\/\/\S+|.*\bPage \d+ of \d+$|\d{4}-\d{2}-\d{2},? \d{1,2}:\d{2}\s*[AP]M$|Go to top$)/
+const PAGE_NOISE = /^(My Academic Requirements\b|\d{1,2}\/\d{1,2}\/\d{2,4},? \d{1,2}:\d{2}\s*[AP]M\b|https?:\/\/\S+|.*\bPage \d+ of \d+$|\d{4}-\d{2}-\d{2},? \d{1,2}:\d{2}\s*[AP]M$|Go to top$)/
 const SKIP_TABLE = /^(Course Description|Designation Status|View Course List)/
 
 const num = (s: string) => Number(s.replace(/,/g, ''))
@@ -76,7 +76,7 @@ export function parseDpr(text: string): DprReport {
       else table.rows[table.rows.length - 1] += ' ' + line
       continue
     }
-    const prog = /^(Career|Program|Plan):\s*(.+?)\s+(?:Fall|Spring|Summer|Winter) \d{4}$/.exec(line)
+    const prog = /^(Career|Program|Plan):\s*(.+?)\s+(?:Fall|Spring|Summer|Winter) \d{4}(?:\s|$)/.exec(line)
     if (prog) {
       if (prog[1] === 'Career') report.career = prog[2]
       else if (prog[1] === 'Program') report.program = prog[2]
@@ -87,6 +87,8 @@ export function parseDpr(text: string): DprReport {
       table = { kind: line.includes('were used') ? 'used' : 'options', rows: [] }
       continue
     }
+    // Advising-only list of dropped/withdrawn courses: not part of any requirement, so don't attach it to the previous one.
+    if (line === 'Courses Not Used') { req = null; target = null; continue }
     const tag = TAG.exec(line)
     if (tag) {
       const [, rid, lid] = tag
