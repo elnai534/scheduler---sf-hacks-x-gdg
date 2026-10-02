@@ -1,4 +1,4 @@
-export type Step = 'pathway' | 'setup' | 'degree' | 'build' | 'review'
+export type Step = 'pathway' | 'setup' | 'degree' | 'build'
 
 const STEPS: { id: Step; label: string }[] = [
   { id: 'pathway', label: 'Program setup' },

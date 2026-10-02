@@ -19,7 +19,6 @@ interface Props {
   onToggle: (c: Course) => void
   onApply: (add: Course[], remove: string[]) => void
   onGenerate: (prefs: Prefs) => Recommendation | string
-  onReview: () => void
   priorities: string[]; setPriorities: (p: string[]) => void
 }
 
@@ -55,7 +54,7 @@ export default function Build(p: Props) {
         <div className="flex items-center gap-4">
           <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs">Selected schedule</span>
           <div className="border-l border-slate-300 pl-4"><b className="text-lg">{units} units</b> <span className="text-xs text-slate-500">{blocking} blocking</span></div>
-          <button onClick={p.onReview} className="flex items-center gap-2 rounded-lg bg-brand-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Export<span className="icon text-lg">chevron_right</span></button>
+          <button onClick={() => window.print()} className="flex items-center gap-2 rounded-lg bg-brand-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Export<span className="icon text-lg">chevron_right</span></button>
         </div>
       </div>
       <div className="grid grid-cols-[430px_1fr] overflow-hidden rounded-2xl border border-slate-300 bg-white">

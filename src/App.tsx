@@ -4,7 +4,6 @@ import Header from './components/Header'
 import type { Step } from './components/Header'
 import Build from './pages/Build'
 import Degree from './pages/Degree'
-import Review from './pages/Review'
 import Pathway from './pages/Pathway'
 import type { DprReport } from './dpr/types'
 import Setup from './pages/Setup'
@@ -56,10 +55,9 @@ export default function App() {
       {step === 'degree' && <Degree report={report} program={program} accepted={accepted} onToggle={toggle} onNext={() => { setOpenTab('plan'); setStep('build') }} />}
       {/* Always mounted (hidden off-step) so tab, preferences, filters and chat survive switching steps. */}
       <div hidden={step !== 'build'}>
-        <Build report={report} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={toggle} onApply={apply} onGenerate={generate} onReview={() => setStep('review')}
+        <Build report={report} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={toggle} onApply={apply} onGenerate={generate}
           priorities={priorities} setPriorities={setPriorities} />
       </div>
-      {step === 'review' && <Review courses={accepted} onBack={() => setStep('build')} />}
     </div>
   )
 }
