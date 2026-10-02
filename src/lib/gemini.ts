@@ -1,6 +1,13 @@
 /** Tried in order. A retired model (404) or a busy one (429/503) falls through to the next. */
 export const MODELS: string[] = [import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-flash-latest']
 const RETRYABLE = new Set([404, 429, 500, 503])
+
+/** Structured output: the model can only answer in this shape. */
+export const RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: { onTopic: { type: 'BOOLEAN' }, message: { type: 'STRING' }, add: { type: 'ARRAY', items: { type: 'STRING' } }, remove: { type: 'ARRAY', items: { type: 'STRING' } } },
+  required: ['onTopic', 'message', 'add', 'remove'],
+}
 const ENV_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
 const STORAGE = 'scheduler.geminiKey'
 /** When set, requests go through the server-side proxy (worker/gemini-proxy.js) and no key is needed in the browser. */
@@ -26,9 +33,10 @@ export async function askGeminiJson<T>(system: string, user: string): Promise<T>
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: system }] },
             contents: [{ role: 'user', parts: [{ text: user }] }],
-            generationConfig: { responseMimeType: 'application/json' },
+            generationConfig: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA },
           }),
         })
+    if (res.status === 429 && (await res.clone().text()).includes('rate_limited')) throw new Error('Too many questions in a short time. Wait a few seconds and try again.')
     if (res.ok || !RETRYABLE.has(res.status)) break
     lastErr = `${model}: ${res.status}`
   }

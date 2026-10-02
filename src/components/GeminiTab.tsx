@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react'
-import { SCHEDULABLE, byId } from '../data'
+import { SCHEDULABLE } from '../data'
 import { buildGeminiContext } from '../lib/geminiContext'
+import { precheckQuestion, sanitizeReply } from '../lib/geminiGuard'
+import { completedCodes, inProgressCodes } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
 import type { Prefs, Recommendation } from '../recommend/recommend'
 import type { Course } from '../data'
 import { askGeminiJson, getGeminiKey, keyIsFromBuild, saveGeminiKey, usesProxy } from '../lib/gemini'
 
 interface Msg { role: 'user' | 'ai'; text: string }
-interface Reply { message: string; add?: string[]; remove?: string[] }
 
 const CHIPS = ['Keep me off campus on Fridays', 'Fewer days on campus overall', 'Prefer online classes', 'Add DES 226 if it fits', 'Test Gemini recovery']
 
@@ -19,19 +20,27 @@ export default function GeminiTab({ accepted, onApply, report, prefs, rec }: { a
   const [hasKey, setHasKey] = useState(usesProxy || Boolean(getGeminiKey()))
   const [keyDraft, setKeyDraft] = useState('')
 
-  async function send(q: string) {
-    if (!q.trim() || busy) return
-    setMsgs((m) => [...m, { role: 'user', text: q }])
+  const lastSent = useRef(0)
+
+  async function send(raw: string) {
+    if (!raw.trim() || busy) return
     setText('')
+    const pre = precheckQuestion(raw)
+    if (!pre.ok) { setMsgs((m) => [...m, { role: 'user', text: raw.slice(0, 500) }, { role: 'ai', text: pre.reply }]); return }
+    if (Date.now() - lastSent.current < 2000) { setMsgs((m) => [...m, { role: 'user', text: pre.question }, { role: 'ai', text: 'Wait a few seconds before the next question.' }]); return }
+    lastSent.current = Date.now()
+    setMsgs((m) => [...m, { role: 'user', text: pre.question }])
     setBusy(true)
     try {
       const system = buildGeminiContext({ report, accepted, catalog: SCHEDULABLE, prefs, rec })
-      const r = await askGeminiJson<Reply>(system, q)
-      const add = (r.add ?? []).map(byId).filter((c): c is Course => Boolean(c))
-      onApply(add, r.remove ?? [])
-      setMsgs((m) => [...m, { role: 'ai', text: r.message }])
+      const raw = await askGeminiJson<unknown>(system, `<question>${pre.question}</question>`)
+      const doing = report ? inProgressCodes(report) : new Set<string>()
+      const assumed = new Set([...(report ? completedCodes(report) : []), ...doing])
+      const safe = sanitizeReply(raw, { catalog: SCHEDULABLE, accepted, assumed, doing })
+      onApply(safe.add, safe.remove)
+      setMsgs((m) => [...m, { role: 'ai', text: safe.message }])
     } catch (e) {
-      setMsgs((m) => [...m, { role: 'ai', text: `Couldn't reach Gemini. ${e instanceof Error ? e.message : String(e)}` }])
+      setMsgs((m) => [...m, { role: 'ai', text: `Could not get an answer. ${e instanceof Error ? e.message : String(e)}` }])
     } finally {
       setBusy(false)
       setTimeout(() => end.current?.scrollIntoView({ behavior: 'smooth' }), 50)

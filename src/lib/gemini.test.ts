@@ -42,6 +42,20 @@ describe('askGeminiJson', () => {
     expect(String(url)).not.toContain('test-key')
     expect((init as RequestInit).headers).toMatchObject({ 'x-goog-api-key': 'test-key' })
   })
+  it('asks Google for structured output with the answer schema', async () => {
+    const f = vi.fn().mockResolvedValue(ok('{"onTopic":true,"message":"x","add":[],"remove":[]}'))
+    vi.stubGlobal('fetch', f)
+    await g.askGeminiJson('s', 'u')
+    const sent = JSON.parse(String((f.mock.calls[0][1] as RequestInit).body))
+    expect(sent.generationConfig.responseSchema).toEqual(g.RESPONSE_SCHEMA)
+    expect(g.RESPONSE_SCHEMA.required).toEqual(['onTopic', 'message', 'add', 'remove'])
+  })
+  it('does not hammer other models when the app’s own rate limit says wait', async () => {
+    const f = vi.fn().mockResolvedValue(new Response('{"error":"rate_limited","retryAfterSeconds":10}', { status: 429 }))
+    vi.stubGlobal('fetch', f)
+    await expect(g.askGeminiJson('s', 'u')).rejects.toThrow(/Wait a few seconds/)
+    expect(f).toHaveBeenCalledTimes(1)
+  })
   it('falls back to the next model when the first is retired (404)', async () => {
     const f = vi.fn().mockResolvedValueOnce(new Response('gone', { status: 404 })).mockResolvedValueOnce(ok('{"message":"from fallback"}'))
     vi.stubGlobal('fetch', f)
