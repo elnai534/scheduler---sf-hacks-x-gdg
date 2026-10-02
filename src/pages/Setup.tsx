@@ -38,8 +38,8 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
               <p className="mt-1 text-sm leading-6 text-slate-600">Optional. Upload a PDF to prefill program and requirement information. You will review all extracted values before they are used.</p></div>
           </div>
           <div className="flex flex-col items-center gap-2">
-            <label className="flex h-10 cursor-pointer items-center rounded-lg border border-violet-300 bg-white px-4 text-sm hover:bg-slate-50">
-              {busy ? 'Reading PDF…' : 'Upload PDF'}
+            <label className="flex h-12 w-full max-w-[280px] cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand-900 px-6 text-base font-semibold text-white hover:bg-brand-700">
+              <span className="icon text-xl">upload_file</span>{busy ? 'Reading PDF…' : 'Upload PDF'}
               <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={busy} onChange={(e) => { upload(e.target.files?.[0]); e.target.value = '' }} />
             </label>
             {err && <div className="text-sm text-red-700">{err}</div>}

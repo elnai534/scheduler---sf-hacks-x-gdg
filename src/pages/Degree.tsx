@@ -2,17 +2,15 @@ import { openRequirements } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
 import type { Program } from './Setup'
 
-const ICONS = [['check_circle', 'Completed', 'text-emerald-700'], ['schedule', 'In progress', 'text-brand-900'], ['checklist', 'Planned', 'text-blue-700'], ['menu_book', 'Remaining', 'text-slate-700']] as const
+const ICONS = [['check_circle', 'Completed', 'text-emerald-700'], ['schedule', 'In progress', 'text-brand-900']] as const
 
 export default function Degree({ program, report, onNext, onBrowse }: { program: Program; report: DprReport | null; onNext: () => void; onBrowse: () => void }) {
   const counts = report
     ? [
         report.courses.filter((c) => c.status === 'completed' || c.status === 'transfer').length,
         report.courses.filter((c) => c.status === 'inProgress').length,
-        0,
-        openRequirements(report).length,
       ]
-    : [2, 1, 1, 4]
+    : [2, 1]
   const open = report ? openRequirements(report) : []
   const sections = [...new Set(open.map((q) => q.section))]
   const title = report ? report.plans.map((p) => p.replace(/-(BS|BA|MN)$/, (m) => (m === '-MN' ? ' (minor)' : m === '-BS' ? ', B.S.' : ', B.A.'))).join(' · ') : [program.major || 'Program not selected', program.degree === 'Bachelor of Arts' ? 'B.A.' : program.degree ? 'B.S.' : ''].filter(Boolean).join(', ')

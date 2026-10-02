@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { DAYS, REQUIREMENTS, cid } from '../data'
+import type { DprReport } from '../dpr/types'
 import type { Recommendation } from '../recommend/recommend'
 import type { Prefs } from '../recommend/recommend'
 
@@ -10,6 +11,7 @@ interface Props {
   setPriorities: (p: string[]) => void
   onGenerate: () => void
   hasReport: boolean
+  report: DprReport | null
   rec: Recommendation | null
   note: string
 }
@@ -33,21 +35,49 @@ export default function PlanTab(p: Props) {
     setDrag(to)
   }
   const toggleDay = (d: (typeof DAYS)[number]) => set({ days: p.prefs.days.includes(d) ? p.prefs.days.filter((x) => x !== d) : [...p.prefs.days, d] })
+  const reqs = p.report?.requirements.filter((q) => q.status !== 'unknown') ?? []
+  const groups = p.report && reqs.length
+    ? [...new Set(reqs.map((q) => q.section || 'Requirements'))].map((name) => {
+        const items = reqs.filter((q) => (q.section || 'Requirements') === name)
+        return { name, items, done: items.filter((q) => q.status === 'filled').length }
+      })
+    : null
+  const totalAll = reqs.length
+  const totalDone = reqs.filter((q) => q.status === 'filled').length
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-start gap-2">
         <span className="icon text-xl text-brand-900">tune</span>
         <div><div className="font-semibold">Requirement progress</div><div className="text-xs text-slate-500">In-progress requirements</div></div>
       </div>
-      {REQUIREMENTS.map((r) => (
-        <div key={r.name} className="border-b border-slate-200 pb-3">
-          <div className="flex items-end justify-between">
-            <div className="text-base font-semibold">{r.name}</div>
-            <div className="flex items-end gap-2 text-right text-sm"><div><b>{r.done} / {r.total}</b><div className="text-xs text-slate-500">{r.total - r.done} units remaining</div></div><span className="icon text-slate-500">expand_more</span></div>
-          </div>
-          <div className="mt-2 h-1.5 rounded-full bg-slate-200"><div className="h-full rounded-full bg-brand-900" style={{ width: `${(r.done / r.total) * 100}%` }} /></div>
-        </div>
-      ))}
+      {groups ? (
+        <>
+          <div className="rounded-lg bg-brand-100 px-3 py-2 text-sm">Total requirements: <b>{totalDone} / {totalAll}</b> <span className="text-xs text-slate-600">completed or in progress / total to graduate</span></div>
+          {groups.map((g) => (
+            <details key={g.name} className="border-b border-slate-200 pb-3">
+              <summary className="flex cursor-pointer items-end justify-between">
+                <div className="text-base font-semibold">{g.name}</div>
+                <div className="flex items-end gap-2 text-right text-sm"><div><b>{g.done} / {g.items.length}</b><div className="text-xs text-slate-500">{g.items.length - g.done} remaining</div></div><span className="icon text-slate-500">expand_more</span></div>
+              </summary>
+              <div className="mt-2 h-1.5 rounded-full bg-slate-200"><div className="h-full rounded-full bg-brand-900" style={{ width: `${(g.done / g.items.length) * 100}%` }} /></div>
+              <ul className="mt-2 space-y-1 text-xs">
+                {g.items.map((q) => <li key={q.id} className="flex items-start gap-1.5"><span className={`icon text-sm ${q.status === 'open' ? 'text-slate-400' : 'text-emerald-700'}`}>{q.status === 'open' ? 'radio_button_unchecked' : 'check_circle'}</span><span>{q.name}</span></li>)}
+              </ul>
+            </details>
+          ))}
+        </>
+      ) : (
+        REQUIREMENTS.map((r) => (
+          <details key={r.name} className="border-b border-slate-200 pb-3">
+            <summary className="flex cursor-pointer items-end justify-between">
+              <div className="text-base font-semibold">{r.name}</div>
+              <div className="flex items-end gap-2 text-right text-sm"><div><b>{r.done} / {r.total}</b><div className="text-xs text-slate-500">{r.total - r.done} units remaining</div></div><span className="icon text-slate-500">expand_more</span></div>
+            </summary>
+            <div className="mt-2 h-1.5 rounded-full bg-slate-200"><div className="h-full rounded-full bg-brand-900" style={{ width: `${(r.done / r.total) * 100}%` }} /></div>
+            <div className="mt-2 text-xs text-slate-500">Upload or paste a degree report on Program setup to see the requirements in this group.</div>
+          </details>
+        ))
+      )}
       <div className="flex items-start gap-2">
         <span className="icon text-xl text-brand-900">lock</span>
         <div><div className="font-semibold">Must have</div><div className="text-xs text-slate-500">Candidates that break these conditions are rejected.</div></div>
@@ -68,13 +98,6 @@ export default function PlanTab(p: Props) {
         <Toggle on={p.prefs.onlineOnly} onChange={(v) => set({ onlineOnly: v })} label="Online classes only" hint="Asynchronous or scheduled online" />
         <Toggle on={p.prefs.seatsOnly} onChange={(v) => set({ seatsOnly: v })} label="Seats available only" hint="Skip full sections" />
         <div className="text-xs text-slate-500">Current candidate meetings are checked immediately.</div>
-      </div>
-      <div className="space-y-3 rounded-xl border border-slate-300 bg-white p-3">
-        <Toggle on={p.prefs.fast} onChange={(v) => set({ fast: v })} label="Graduate as fast as possible" hint="Favor courses that unlock the most remaining requirements" />
-        <label className="block text-sm font-medium">I want to learn…
-          <input value={p.prefs.skills} onChange={(e) => set({ skills: e.target.value })} placeholder="e.g. drawing, web, python"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-brand-700" />
-        </label>
       </div>
       <button onClick={p.onGenerate} className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 py-3 text-sm font-semibold text-white hover:bg-brand-700">
         <span className="icon text-lg">auto_awesome</span>Generate proposed schedule
@@ -107,7 +130,11 @@ export default function PlanTab(p: Props) {
         <span className="icon text-xl text-brand-900">tune</span>
         <div><div className="font-semibold">Prioritize, in this order</div><div className="text-xs text-slate-500">Rank flexible priorities; trade-offs will cite schedule facts.</div></div>
       </div>
-      <ul className="space-y-2">
+      <div className="space-y-3 rounded-xl border border-slate-300 bg-white p-3">
+        <Toggle on={p.prefs.fast} onChange={(v) => set({ fast: v })} label="Graduate as soon as possible" hint="Favor courses that unlock the most remaining requirements" />
+        <Toggle on={p.prefs.usePriorities !== false} onChange={(v) => set({ usePriorities: v })} label="Use the priority order below" hint="Turn off to ignore the ranking" />
+      </div>
+      <ul className={`space-y-2 ${p.prefs.usePriorities === false ? 'pointer-events-none opacity-40' : ''}`}>
         {p.priorities.map((name, i) => (
           <li key={name} draggable onDragStart={() => setDrag(i)} onDragEnter={() => move(i)} onDragEnd={() => setDrag(null)} onDragOver={(e) => e.preventDefault()}
             className="flex cursor-grab items-center gap-3 rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-medium">

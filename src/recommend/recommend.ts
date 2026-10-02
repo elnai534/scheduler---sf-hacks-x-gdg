@@ -15,6 +15,8 @@ export interface Prefs {
   /** Exclude sections with no open seats. */
   seatsOnly: boolean
   targetUnits: number
+  /** false = ignore the ranked priority list (default on). */
+  usePriorities?: boolean
 }
 
 export const DEFAULT_PREFS: Prefs = { onlineOnly: false, days: [], fast: false, skills: '', seatsOnly: false, targetUnits: 12 }
