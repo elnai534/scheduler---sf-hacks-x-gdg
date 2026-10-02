@@ -119,29 +119,40 @@ export function runTool(name: string, rawArgs: unknown, env: ToolEnv): unknown {
       const code = needCode()
       if (typeof code !== 'string') return code
       if (!node(code)) return { error: `${code} is not in the catalog.` }
+      // Phase 1: for every course, the earliest term it can be taken and the cheapest option chosen for each unmet group.
       const level = new Map<string, number>()
-      const order: string[] = []
-      const alternatives: Record<string, string[]> = {}
-      const visit = (c: string, guard: Set<string>): number => {
+      const chosen = new Map<string, { pick: string; others: string[] }[]>()
+      const levelOf = (c: string, guard: Set<string>): number => {
         if (assumed.has(c)) return 0
         if (level.has(c)) return level.get(c)!
         if (guard.has(c)) return 1
-        guard.add(c)
+        const inner = new Set(guard).add(c)
         let best = 0
+        const picks: { pick: string; others: string[] }[] = []
         for (const g of node(c)?.prereqGroups ?? []) {
           if (g.anyOf.some((p) => assumed.has(p))) continue
-          const options = g.anyOf.map((p) => ({ p, lv: visit(p, new Set(guard)) })).sort((a, b) => a.lv - b.lv || a.p.localeCompare(b.p))
-          const pick = options[0]
-          if (g.anyOf.length > 1) alternatives[pick.p] = g.anyOf.filter((x) => x !== pick.p)
-          if (!order.includes(pick.p)) order.push(pick.p)
-          best = Math.max(best, pick.lv)
+          const options = g.anyOf.map((p) => ({ p, lv: levelOf(p, inner) })).sort((x, y) => x.lv - y.lv || x.p.localeCompare(y.p))
+          picks.push({ pick: options[0].p, others: options.slice(1).map((o) => o.p) })
+          best = Math.max(best, options[0].lv)
         }
-        const lv = best + 1
-        level.set(c, lv)
-        return lv
+        chosen.set(c, picks)
+        level.set(c, best + 1)
+        return best + 1
       }
-      const levels = visit(code, new Set())
-      const steps = order.filter((c) => !assumed.has(c)).sort((a, b) => (level.get(a) ?? 0) - (level.get(b) ?? 0) || a.localeCompare(b))
+      const levels = levelOf(code, new Set())
+      // Phase 2: collect only the courses on the chosen route (unchosen alternatives add nothing).
+      const need = new Set<string>()
+      const alternatives: Record<string, string[]> = {}
+      const collect = (c: string) => {
+        for (const { pick, others } of chosen.get(c) ?? []) {
+          if (need.has(pick)) continue
+          need.add(pick)
+          if (others.length) alternatives[pick] = others
+          collect(pick)
+        }
+      }
+      collect(code)
+      const steps = [...need].filter((c) => !assumed.has(c)).sort((a, b) => (level.get(a) ?? 0) - (level.get(b) ?? 0) || a.localeCompare(b))
       return {
         target: code, status: status(code), take_first_in_this_order: steps.map((c) => ({ course: c, title: t(node(c)?.title ?? ''), needs: groupsText(c), alternative_if_any: alternatives[c] ?? [] })),
         minimum_terms_including_target: levels, note: 'Courses at the same level can be taken in the same term. "alternative_if_any" are other options for that slot.',

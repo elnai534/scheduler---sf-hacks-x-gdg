@@ -50,6 +50,19 @@ describe('runTool: the real graph under the hood', () => {
     expect(order).not.toContain('DES 200') // already taken
     expect(r.minimum_terms_including_target).toBeGreaterThanOrEqual(3)
   })
+  it('path_to lists only the chosen route: steps for an unchosen alternative are not included', () => {
+    const r = run('path_to', { code: 'DES 505' })
+    const order = r.take_first_in_this_order.map((s: { course: string }) => s.course)
+    expect(order).toContain('DES 410')
+    expect(order).not.toContain('DES 425') // the alternative to DES 410
+    expect(order).not.toContain('DES 325') // only needed for DES 425
+    expect(r.take_first_in_this_order.find((s: { course: string }) => s.course === 'DES 410').alternative_if_any).toEqual(['DES 425'])
+    expect(r.minimum_terms_including_target).toBe(4)
+  })
+  it('every listed step is actually needed: removing it would leave the target unreachable (hand-checked chain)', () => {
+    const order = run('path_to', { code: 'DES 505' }).take_first_in_this_order.map((s: { course: string }) => s.course)
+    expect([...order].sort()).toEqual(['DES 222', 'DES 300', 'DES 305', 'DES 310', 'DES 320', 'DES 321', 'DES 322', 'DES 324GW', 'DES 410'])
+  })
   it('path_to picks one option for an OR group and lists the alternatives', () => {
     const r = run('path_to', { code: 'CSC 220' })
     const step = r.take_first_in_this_order.find((s: { alternative_if_any: string[] }) => s.alternative_if_any.length)

@@ -82,6 +82,28 @@ describe('"what do I still need"', () => {
   })
 })
 
+describe('path and compound questions', () => {
+  it('answers "what do I need before X and how many terms" completely, from the graph', () => {
+    const a = ask('What do I need before DES 505 and how many terms will that take?')!
+    expect(a).toMatch(/^DES 505: not eligible yet, needs DES 322 and DES 324GW and DES 410 or DES 425\./)
+    expect(a).toMatch(/Minimum \d+ terms including DES 505/)
+    const order = [...a.matchAll(/^\d+\. (\S+ \S+)/gm)].map((m) => m[1])
+    expect(order.indexOf('DES 222')).toBeLessThan(order.indexOf('DES 322')) // prerequisites come first
+    expect(order).not.toContain('DES 200') // already on the report
+  })
+  it('the number of terms equals what the path_to tool reports', () => {
+    const tool = runTool('path_to', { code: 'DES 505' }, env) as { minimum_terms_including_target: number }
+    expect(ask('fewest terms to reach DES 505')).toContain(`Minimum ${tool.minimum_terms_including_target} terms`)
+  })
+  it('a course with nothing missing, and one already taken', () => {
+    expect(ask('how many terms until I can take DES 300')).toMatch(/^DES 300: eligible now\. Nothing has to come first, so 1 term\./)
+    expect(ask('path to DES 200')).toBe('DES 200: already on your report.')
+  })
+  it('does not answer a second question locally (it would be silently ignored)', () => {
+    for (const q of ['Can I take DES 300 and which professor teaches it?', 'Am I eligible for DES 322 and what does it cover?', 'What can I take online and why are those the best?']) expect(ask(q), q).toBeNull()
+  })
+})
+
 describe('everything else goes to the model', () => {
   it('returns null for changes, planning and open-ended questions', () => {
     for (const q of ['Add DES 300 please', 'Remove DES 222', 'Recommend a schedule', 'Swap DES 220 for something online', 'Keep me off campus on Fridays', 'Which is the easiest design class?', 'Explain what GWAR is']) expect(ask(q), q).toBeNull()

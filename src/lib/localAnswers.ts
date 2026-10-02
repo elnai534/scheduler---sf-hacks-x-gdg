@@ -2,7 +2,7 @@ import type { Course, Day } from '../data'
 import { cid, isOnline, range } from '../data'
 import { openRequirements } from '../dpr/parse'
 import { COURSE_CODE } from './geminiGuard'
-import { statusOf } from './geminiTools'
+import { runTool, statusOf } from './geminiTools'
 import type { ToolEnv } from './geminiTools'
 
 /**
@@ -15,6 +15,10 @@ const CHANGE = /\b(add|remove|drop|swap|replace|put|build|generate|recommend|sug
 const ELIG = /\b(eligible|eligibility|can i take|could i take|can i enrol\w*|am i able|do i (meet|have|qualify)|prereq\w*|pre-req\w*|need before|requirements? for|allowed to take|ready for|take .* yet)\b/i
 const LIST = /(\b(what|which)\b.*\b(can|could|should|do)\b.*\bi\b.*\b(take|register|enrol\w*|sign up)|\b(what|which)\b.*\b(classes|courses|sections)\b.*\b(open|available|eligible)|\beligible (classes|courses|sections)\b|\bwhat('s| is) (open|available)\b)/i
 const NEED = /(\bremaining (requirements?|courses|classes)\b|\b(what|which)\b.*\b(do i|am i|i)\b.*\b(still|left|else)?\b.*\b(need|missing|require\w*)\b|\bwhat('s| is) left\b|\bstill (need|have) to\b)/i
+
+const PATH = /(how many (terms?|semesters?|quarters?)|\b(fewest|fastest|earliest|soonest)\b|path to|\bsequence\b|in what order|steps? to|how (long|soon))/i
+/** A second question joined to the first ("... and which professor teaches it?") is not answered locally. */
+const COMPOUND = /\b(and|also|then|plus)\b.{0,40}\b(how|what|which|when|why|where|who)\b/i
 
 const DAY_WORDS: [RegExp, Day][] = [[/\bmon(day)?s?\b/i, 'Mon'], [/\btue(s|sday)?s?\b/i, 'Tue'], [/\bwed(nesday)?s?\b/i, 'Wed'], [/\bthu(r|rs|rsday)?s?\b|\bthursday/i, 'Thu'], [/\bfri(day)?s?\b/i, 'Fri']]
 
@@ -49,6 +53,17 @@ function eligibilityAnswer(codes: string[], env: ToolEnv): string {
   }).join('\n\n')
 }
 
+function pathAnswer(code: string, env: ToolEnv): string {
+  const r = runTool('path_to', { code }, env) as { error?: string; status?: string; take_first_in_this_order?: { course: string; title: string; needs: string[]; alternative_if_any: string[] }[]; minimum_terms_including_target?: number }
+  if (r.error) return `${code}: ${r.error}`
+  if (r.status === 'taken or in progress') return `${code}: already on your report.`
+  const steps = r.take_first_in_this_order ?? []
+  const n = r.minimum_terms_including_target ?? 1
+  if (!steps.length) return `${code}: ${r.status === 'eligible' ? 'eligible now' : r.status}. Nothing has to come first, so ${n} term.`
+  const lines = steps.map((s, i) => `${i + 1}. ${s.course} · ${s.title}${s.needs.length ? ` · needs ${s.needs.join(' and ')}` : ''}${s.alternative_if_any.length ? ` (or ${s.alternative_if_any.join(' / ')})` : ''}`)
+  return [`${code}: ${r.status?.replace(/^needs/, 'not eligible yet, needs')}.`, `Minimum ${n} terms including ${code}, if each required course is taken as early as its prerequisites allow.`, 'Take first, in this order:', ...lines, 'Courses at the same level can share a term. Other option groups may let you skip steps listed with "or".'].join('\n')
+}
+
 function listAnswer(q: string, env: ToolEnv): string {
   const wantOnline = /\bonline|remote|async\w*/i.test(q)
   const wantDays = DAY_WORDS.filter(([re]) => re.test(q)).map(([, d]) => d)
@@ -79,6 +94,8 @@ export function answerLocally(question: string, env: ToolEnv): string | null {
   const q = question.trim()
   if (CHANGE.test(q)) return null
   const codes = codesIn(q, env)
+  if (codes.length && PATH.test(q)) return pathAnswer(codes[0], env)
+  if (COMPOUND.test(q)) return null
   if (codes.length && ELIG.test(q)) return eligibilityAnswer(codes, env)
   if (!codes.length && LIST.test(q)) return listAnswer(q, env)
   if (!codes.length && NEED.test(q)) return needAnswer(env)
