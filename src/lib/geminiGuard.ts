@@ -40,7 +40,7 @@ const MATH_ONLY_RE = new RegExp(
  */
 const DAY = String.raw`(?:mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(?:day)?s?`
 const PLAN_CUES = new RegExp(
-  String.raw`\b(?:courses?|class(?:es)?|schedul\w*|semesters?|terms?|units?|credits?|requirements?|prereq\w*|pre-req\w*|eligib\w*|enrol\w*|regist\w*|take|taking|taken|add|drop|remove|swap|replace|online|in[- ]person|hybrid|async\w*|sync\w*|seats?|waitlist\w*|sections?|${DAY}|mornings?|afternoons?|evenings?|graduat\w*|degree|majors?|minors?|ge|electives?|instructors?|professors?|conflicts?|overlap\w*|workload|report|dpr|gwar|plan|plans|planning|recommend\w*|suggest\w*|remaining|fulfil\w*|satisf\w*|learn\w*|skills?|fits?|campus|catalog|bulletin|prerequisites?|credit|catalogue|advisor)\b`,
+  String.raw`\b(?:courses?|class(?:es)?|schedul\w*|semesters?|terms?|units?|credits?|requirements?|prereq\w*|pre-req\w*|eligib\w*|enrol\w*|regist\w*|take|taking|taken|add|drop|remove|swap|replace|online|in[- ]person|hybrid|async\w*|sync\w*|seats?|waitlist\w*|sections?|${DAY}|mornings?|afternoons?|evenings?|graduat\w*|degree|majors?|minors?|ge|electives?|instructors?|professors?|conflicts?|overlap\w*|workload|report|dpr|gwar|plan|plans|planning|recommend\w*|suggest\w*|remaining|fulfil\w*|satisf\w*|learn\w*|skills?|fits?|campus|catalog|bulletin|prerequisites?|credit|catalogue|advisor|need\w*|left|missing|finish\w*|complete\w*|still)\b`,
   'i',
 )
 const CODE_CUE = new RegExp(String.raw`\b[A-Z]{2,5} ?\d{2,3}[A-Z]{0,3}\b|\b(?:des|csc|math|biol|ais|adm|esm|engr|phys|chem|comm|econ|id) ?\d{3}[a-z]{0,3}\b`, 'i')

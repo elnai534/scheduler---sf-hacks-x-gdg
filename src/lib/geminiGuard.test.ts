@@ -40,7 +40,7 @@ describe('precheckQuestion: anything that is not course planning is declined wit
     }
   })
   it('passes real planning questions, including lowercase course codes and day names', () => {
-    for (const q of ['What can I take online?', 'can i take des 300', 'Is DES 322 open on Fridays?', 'which classes fit my Tuesday schedule', 'what do I still need to graduate', 'Swap DES 220 for something online', 'I want to learn web design', 'prereqs for CSC 220', 'any hybrid electives in the mornings?', 'do I meet the requirements for GWAR']) {
+    for (const q of ['What can I take online?', 'can i take des 300', 'Is DES 322 open on Fridays?', 'which classes fit my Tuesday schedule', 'what do I still need to graduate', 'Swap DES 220 for something online', 'I want to learn web design', 'prereqs for CSC 220', 'any hybrid electives in the mornings?', 'do I meet the requirements for GWAR', 'What do I still need?', 'what is left to finish my degree', 'which requirements am I missing']) {
       expect(precheckQuestion(q).ok, q).toBe(true)
     }
   })
