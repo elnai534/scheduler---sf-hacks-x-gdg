@@ -1,3 +1,7 @@
+import catalog from './data/courses.json'
+import { SECTIONS } from './data/sections'
+import type { CourseNode } from './dag/types'
+
 export type Day = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri'
 export const DAYS: Day[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
 
@@ -9,6 +13,8 @@ export interface Meeting {
   mode: 'In person' | 'Online'
 }
 
+export type CourseMode = 'Hybrid' | 'Online asynchronous' | 'In person' | 'Catalog only'
+
 export interface Course {
   code: string
   section: string
@@ -16,7 +22,7 @@ export interface Course {
   classNumber: number
   kind: 'LEC' | 'ACT'
   units: number
-  mode: 'Hybrid' | 'Online asynchronous' | 'In person'
+  mode: CourseMode
   seats: number
   waitlist: number
   instructor: string
@@ -24,63 +30,25 @@ export interface Course {
   permission: boolean
   meetings: Meeting[]
   requirement: 'Major' | 'SF State' | 'General Education'
+  prereqText: string
+  description: string
 }
 
-const t = (h: number, m = 0) => h * 60 + m
+/** Every course comes from the scraped bulletin catalog (src/data/courses.json). Section details overlay by code. */
+export const CATALOG: Course[] = (catalog as CourseNode[]).flatMap((n): Course[] => {
+  const base = {
+    code: n.code, title: n.title, units: n.units ?? 3, prereqText: n.prereqText, description: n.description,
+    division: Number(/\d+/.exec(n.code)![0]) >= 300 ? 'Upper Division' : 'Lower Division',
+  }
+  const sections = SECTIONS[n.code]
+  if (!sections) {
+    return [{ ...base, section: '01', classNumber: 0, kind: 'LEC' as const, mode: 'Catalog only' as const, seats: 0, waitlist: 0, instructor: 'TBA', permission: n.permissionWaiver, requirement: 'Major' as const, meetings: [] }]
+  }
+  return sections.map((x) => ({ ...base, ...x }))
+})
 
-export const CATALOG: Course[] = [
-  {
-    code: 'DES 200', section: '01', title: 'Visual Design Literacy', classNumber: 4384, kind: 'LEC', units: 3,
-    mode: 'Hybrid', seats: 1, waitlist: 40, instructor: 'Debra Glass', division: 'Lower Division', permission: true,
-    requirement: 'Major',
-    meetings: [
-      { day: 'Tue', start: t(9, 30), end: t(10, 45), location: 'Burk Hall 237', mode: 'In person' },
-      { day: 'Thu', start: t(9, 30), end: t(10, 45), location: 'Online', mode: 'Online' },
-    ],
-  },
-  {
-    code: 'DES 200', section: '02', title: 'Visual Design Literacy', classNumber: 4385, kind: 'LEC', units: 3,
-    mode: 'Hybrid', seats: 0, waitlist: 40, instructor: 'Debra Glass', division: 'Lower Division', permission: true,
-    requirement: 'Major',
-    meetings: [
-      { day: 'Tue', start: t(11), end: t(12, 15), location: 'Burk Hall 237', mode: 'In person' },
-      { day: 'Thu', start: t(11), end: t(12, 15), location: 'Online', mode: 'Online' },
-    ],
-  },
-  {
-    code: 'DES 222', section: '01', title: 'Digital Design Foundations I', classNumber: 4049, kind: 'ACT', units: 3,
-    mode: 'Online asynchronous', seats: 1, waitlist: 60, instructor: 'Julia Ayana Airakan-Mance', division: 'Lower Division',
-    permission: true, requirement: 'Major', meetings: [],
-  },
-  {
-    code: 'DES 222', section: '02', title: 'Digital Design Foundations I', classNumber: 7832, kind: 'ACT', units: 3,
-    mode: 'Online asynchronous', seats: 0, waitlist: 60, instructor: 'Staff', division: 'Lower Division',
-    permission: false, requirement: 'Major', meetings: [],
-  },
-  {
-    code: 'DES 226', section: '01', title: 'Modern Letterpress Printing: Traditional and Digital Techniques', classNumber: 7769,
-    kind: 'ACT', units: 3, mode: 'In person', seats: 0, waitlist: 18, instructor: 'Staff', division: 'Lower Division',
-    permission: false, requirement: 'Major',
-    meetings: [
-      { day: 'Fri', start: t(9), end: t(11, 45), location: 'Creative Arts 140', mode: 'In person' },
-    ],
-  },
-  {
-    code: 'BIOL 318', section: '01', title: 'Our Endangered Planet', classNumber: 4543, kind: 'LEC', units: 3,
-    mode: 'In person', seats: 12, waitlist: 0, instructor: 'Staff', division: 'Upper Division', permission: false,
-    requirement: 'General Education',
-    meetings: [
-      { day: 'Tue', start: t(12), end: t(14), location: 'Hensill Hall 112', mode: 'In person' },
-      { day: 'Thu', start: t(12), end: t(14), location: 'Hensill Hall 112', mode: 'In person' },
-    ],
-  },
-  {
-    code: 'AIS 460', section: '01', title: 'American Indian Politics', classNumber: 4543, kind: 'LEC', units: 3,
-    mode: 'In person', seats: 8, waitlist: 0, instructor: 'Staff', division: 'Upper Division', permission: false,
-    requirement: 'SF State',
-    meetings: [{ day: 'Wed', start: t(11), end: t(13), location: 'Humanities 405', mode: 'In person' }],
-  },
-]
+/** Courses that have real-looking section info and can be placed on the calendar. */
+export const SCHEDULABLE = CATALOG.filter((c) => c.mode !== 'Catalog only')
 
 export const cid = (c: Course) => `${c.code} [${c.section}]`
 export const byId = (id: string) => CATALOG.find((c) => cid(c) === id)

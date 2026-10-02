@@ -84,7 +84,7 @@ export default function Build(p: Props) {
               {untimed.map((c) => (
                 <div key={cid(c)} className="mb-2 flex items-center gap-3 rounded-lg border border-slate-300 bg-white p-4">
                   <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-100 text-brand-900"><span className="icon text-xl">desktop_windows</span></div>
-                  <div className="flex-1"><div className="text-sm font-semibold">{cid(c)} · {c.title}</div><div className="text-xs text-slate-500">No scheduled day or time · Online</div></div>
+                  <div className="flex-1"><div className="text-sm font-semibold">{cid(c)} · {c.title}</div><div className="text-xs text-slate-500">{c.mode === 'Catalog only' ? 'Catalog entry · section times unavailable' : 'No scheduled day or time · Online'}</div></div>
                   <span className="rounded-full border border-brand-200 bg-brand-100 px-3 py-0.5 text-xs font-medium text-brand-900">{c.mode}</span>
                   <button onClick={() => p.onToggle(c)} className="icon text-slate-400 hover:text-red-700" title="Remove">close</button>
                 </div>

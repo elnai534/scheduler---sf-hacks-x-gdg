@@ -7,7 +7,7 @@ import Review from './pages/Review'
 import Pathway from './pages/Pathway'
 import Setup from './pages/Setup'
 import type { Program } from './pages/Setup'
-import { CATALOG, byId, cid, conflictsWith } from './data'
+import { SCHEDULABLE, byId, cid, conflictsWith } from './data'
 import type { Course } from './data'
 
 const RANK: Record<string, string> = { Major: 'Major Requirements', 'SF State': 'SF State Requirements', 'General Education': 'General Education Requirements' }
@@ -30,9 +30,9 @@ export default function App() {
   function generate(): string {
     const blocked = DAYS_FROM(unavailable)
     const target = parseInt(targetUnits, 10) || 12
-    const codes = [...new Set(CATALOG.map((c) => c.code))].sort((a, b) => {
-      const ra = priorities.indexOf(RANK[CATALOG.find((c) => c.code === a)!.requirement])
-      const rb = priorities.indexOf(RANK[CATALOG.find((c) => c.code === b)!.requirement])
+    const codes = [...new Set(SCHEDULABLE.map((c) => c.code))].sort((a, b) => {
+      const ra = priorities.indexOf(RANK[SCHEDULABLE.find((c) => c.code === a)!.requirement])
+      const rb = priorities.indexOf(RANK[SCHEDULABLE.find((c) => c.code === b)!.requirement])
       return ra - rb
     })
     const picked: Course[] = []
@@ -40,7 +40,7 @@ export default function App() {
     for (const code of codes) {
       if (units >= target) break
       const days = new Set(picked.flatMap((c) => c.meetings.map((m) => m.day)))
-      const options = CATALOG.filter((c) => c.code === code && !conflictsWith(c, picked) && !c.meetings.some((m) => blocked.includes(m.day)))
+      const options = SCHEDULABLE.filter((c) => c.code === code && !conflictsWith(c, picked) && !c.meetings.some((m) => blocked.includes(m.day)))
       options.sort((a, b) => {
         const score = (c: Course) => (c.seats > 0 ? 0 : 10) + c.meetings.filter((m) => !days.has(m.day)).length * (priorities.indexOf('Consolidate campus days') < 3 ? 1 : 0)
         return score(a) - score(b)

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { CATALOG, cid, conflictsWith, fmt } from '../data'
+import { CATALOG, SCHEDULABLE, cid, conflictsWith, fmt } from '../data'
 import type { Course } from '../data'
 
 const meetingLine = (c: Course) => {
+  if (c.mode === 'Catalog only') return 'Section times not in the catalog'
   if (!c.meetings.length) return 'No scheduled day or time'
   const m = c.meetings[0]
   const more = c.meetings.length > 1 ? ` · +${c.meetings.length - 1} more meeting` : ''
@@ -17,11 +18,13 @@ export default function CoursesTab({ accepted, onToggle }: { accepted: Course[];
   const [seatsOnly, setSeatsOnly] = useState(false)
   const [mode, setMode] = useState('')
   const [instructor, setInstructor] = useState('')
-  const results = CATALOG.filter((c) =>
+  const [limit, setLimit] = useState(30)
+  const matches = [...SCHEDULABLE, ...CATALOG.filter((c) => c.mode === 'Catalog only')].filter((c) =>
     (!q || `${c.code} ${c.title}`.toLowerCase().includes(q.toLowerCase())) &&
     (!seatsOnly || c.seats > 0) && (!mode || c.mode === mode) &&
     (!instructor || c.instructor.toLowerCase().includes(instructor.toLowerCase())),
   )
+  const results = matches.slice(0, limit)
   const input = 'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal outline-brand-700'
   return (
     <div className="space-y-3 p-4">
@@ -54,6 +57,7 @@ export default function CoursesTab({ accepted, onToggle }: { accepted: Course[];
           </div>
         )}
       </div>
+      <div className="text-xs text-slate-500">{matches.length} classes from the SF State bulletin{matches.length > limit ? ` · showing ${limit}` : ''}</div>
       {results.length === 0 && <div className="py-6 text-center text-sm text-slate-500">No classes match these filters.</div>}
       {results.map((c) => {
         const added = accepted.some((a) => cid(a) === cid(c))
@@ -65,10 +69,11 @@ export default function CoursesTab({ accepted, onToggle }: { accepted: Course[];
               <span className="rounded-full border border-brand-200 bg-brand-100 px-3 py-0.5 text-xs font-medium text-brand-900">{c.mode}</span>
             </div>
             <div className="mt-2 text-sm font-semibold">{c.title}</div>
-            <div className="text-xs text-slate-500">{c.kind} · Class #{c.classNumber} · {c.units} units</div>
+            <div className="text-xs text-slate-500">{c.kind} · {c.classNumber ? `Class #${c.classNumber}` : 'Catalog entry'} · {c.units} units</div>
             <div className="mt-2 text-xs">{meetingLine(c)}</div>
+            {c.prereqText && <div className="mt-1 line-clamp-2 text-xs text-slate-500">Prerequisites: {c.prereqText}</div>}
             <div className="mt-2 flex items-center justify-between">
-              <span className="text-xs text-slate-600">{c.seats} seats · {c.waitlist} waitlist{clash && <b className="ml-2 text-red-700">Time conflict</b>}</span>
+              <span className="text-xs text-slate-600">{c.mode === 'Catalog only' ? 'No seat data' : `${c.seats} seats · ${c.waitlist} waitlist`}{clash && <b className="ml-2 text-red-700">Time conflict</b>}</span>
               <button onClick={() => onToggle(c)} className={`flex items-center gap-1 rounded-lg border px-4 py-1.5 text-xs font-semibold ${added ? 'border-slate-300 text-slate-500' : 'border-brand-900 text-brand-900 hover:bg-brand-100'}`}>
                 <span className="icon text-base">{added ? 'check' : 'add'}</span>{added ? 'Added' : 'Add'}
               </button>
@@ -76,6 +81,7 @@ export default function CoursesTab({ accepted, onToggle }: { accepted: Course[];
           </div>
         )
       })}
+      {matches.length > limit && <button onClick={() => setLimit(limit + 30)} className="w-full rounded-lg border border-slate-300 bg-white py-2 text-sm font-semibold text-brand-900">Show more</button>}
     </div>
   )
 }

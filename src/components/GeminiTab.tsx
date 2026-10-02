@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { CATALOG, byId, cid } from '../data'
+import { SCHEDULABLE, byId, cid } from '../data'
 import type { Course } from '../data'
 import { askGeminiJson } from '../lib/gemini'
 
@@ -20,7 +20,7 @@ export default function GeminiTab({ accepted, onApply }: { accepted: Course[]; o
     setText('')
     setBusy(true)
     try {
-      const catalog = CATALOG.map((c) => ({
+      const catalog = SCHEDULABLE.map((c) => ({
         id: cid(c), title: c.title, units: c.units, mode: c.mode, seats: c.seats, permissionRequired: c.permission,
         meetings: c.meetings.map((m) => `${m.day} ${m.start / 60}-${m.end / 60}h ${m.mode}`),
       }))
