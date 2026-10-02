@@ -16,6 +16,13 @@ Lets the public GitHub Pages site use Gemini without putting your API key in the
 - Live site: build with `VITE_GEMINI_PROXY_URL=<url> VITE_GEMINI_API_KEY= BASE=/scheduler---sf-hacks-x-gdg/ npm run build`.
   The proxy URL is public on purpose; it is not a secret. The Google key stays inside Cloudflare.
 
-## Limits worth setting
+## Built-in limits (Flash-Lite free allowance: 15 requests/minute, 1,000/day for the whole project)
+The Worker counts requests in memory (best effort; Google enforces the real cap):
+- per visitor: 4 per 10 seconds, 10 per minute
+- everyone together: 15 per minute, 1,000 per day
+Change them without editing code: add Text variables `VISITOR_PER_10S`, `VISITOR_PER_MINUTE`, `GLOBAL_PER_MINUTE`, `GLOBAL_PER_DAY`
+(for example after turning on billing). Over the limit the Worker answers 429 `{"error":"rate_limited"}`.
+
+## Extra limits worth setting
 - Cloudflare dashboard -> Security -> WAF -> Rate limiting rules: e.g. 20 requests/minute per IP on this Worker.
 - Google AI Studio / Cloud: set a quota or budget cap on the key.

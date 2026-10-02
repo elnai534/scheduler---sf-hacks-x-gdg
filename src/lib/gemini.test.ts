@@ -53,7 +53,27 @@ describe('askGeminiAgent (tool loop)', () => {
     const run = vi.fn().mockReturnValue({})
     await expect(g.askGeminiAgent({ system: 's', question: 'q', tools, run, maxSteps: 3 })).rejects.toThrow(/too many lookups/)
     expect(run).toHaveBeenCalledTimes(3)
-    expect(f).toHaveBeenCalledTimes(4)
+    expect(f).toHaveBeenCalledTimes(4) // 3 rounds + the forced final attempt
+  })
+  it('after the lookup limit it switches tools off and forces an answer instead of failing', async () => {
+    const f = vi.fn().mockResolvedValueOnce(fc('path_to', {})).mockResolvedValueOnce(fc('path_to', {}, 'c2')).mockResolvedValueOnce(ok('{"onTopic":true,"message":"forced","add":[],"remove":[]}'))
+    vi.stubGlobal('fetch', f)
+    const out = await g.askGeminiAgent<{ message: string }>({ system: 's', question: 'q', tools, run: vi.fn().mockReturnValue({}), maxSteps: 2 })
+    expect(out.message).toBe('forced')
+    expect(f).toHaveBeenCalledTimes(3)
+    expect(JSON.parse(String((f.mock.calls[0][1] as RequestInit).body)).toolConfig).toBeUndefined()
+    expect(JSON.parse(String((f.mock.calls[2][1] as RequestInit).body)).toolConfig).toEqual({ functionCallingConfig: { mode: 'NONE' } })
+  })
+  it('defaults to at most two lookup rounds (three requests)', async () => {
+    const f = vi.fn().mockImplementation(() => Promise.resolve(fc('path_to', {})))
+    vi.stubGlobal('fetch', f)
+    await expect(g.askGeminiAgent({ system: 's', question: 'q', tools, run: vi.fn().mockReturnValue({}) })).rejects.toThrow(/too many lookups/)
+    expect(f).toHaveBeenCalledTimes(3)
+  })
+  it('uses the Flash-Lite models first and the full Flash model only as a last resort', () => {
+    expect(g.MODELS[0]).toBe('gemini-3.1-flash-lite')
+    expect(g.MODELS[1]).toBe('gemini-flash-lite-latest')
+    expect(g.MODELS[g.MODELS.length - 1]).toBe('gemini-3.8-flash')
   })
   it('answers directly when no tool is needed (one call)', async () => {
     const f = vi.fn().mockResolvedValue(ok('{"onTopic":true,"message":"direct","add":[],"remove":[]}'))

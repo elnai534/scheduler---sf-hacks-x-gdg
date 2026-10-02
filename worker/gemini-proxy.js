@@ -4,6 +4,7 @@
  * Settings (Cloudflare dashboard -> Worker -> Settings -> Variables and Secrets):
  *   GEMINI_API_KEY   (Secret, required)  your Google key
  *   ALLOWED_ORIGINS  (Text, optional)    comma list, default "https://elnai534.github.io"
+ *   VISITOR_PER_10S, VISITOR_PER_MINUTE, GLOBAL_PER_MINUTE, GLOBAL_PER_DAY  (Text, optional)  rate limits, see below
  *
  * The site sends { model, system, user }; this forwards a fixed-shape request to Google.
  * Anyone can call a public Worker directly (the Origin header is easy to fake outside a browser), so the
@@ -20,17 +21,29 @@ const MAX_BYTES = 200_000
 const MAX_USER_CHARS = 800
 const MODEL_OK = /^gemini-[a-z0-9.\-]{1,40}$/
 
-/** Best-effort limit per visitor IP, kept in this Worker instance's memory (not shared across Cloudflare locations). */
-// A question that uses the DAG tools makes several calls in a row (one per tool round), so allow a short burst.
-const LIMITS = [{ windowMs: 10_000, max: 6 }, { windowMs: 60_000, max: 24 }]
-const hits = new Map()
-function limited(ip, now = Date.now()) {
-  const list = (hits.get(ip) ?? []).filter((t) => now - t < 60_000)
-  const over = LIMITS.find((l) => list.filter((t) => now - t < l.windowMs).length >= l.max)
-  if (over) { hits.set(ip, list); return Math.ceil(over.windowMs / 1000) }
-  list.push(now)
-  hits.set(ip, list)
-  if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => now - t < 60_000)) hits.delete(k)
+/**
+ * Best-effort limits kept in this Worker instance's memory (not shared across Cloudflare locations; Google enforces the real cap).
+ * Defaults match a Gemini Flash-Lite free allowance of 15 requests/minute and 1,000/day for the WHOLE project:
+ *   per visitor: 4 requests / 10 s and 10 / minute (one person cannot use the whole minute)
+ *   all visitors: 15 / minute and 1,000 / day
+ * A question that uses the DAG tools makes several calls in a row (one per tool round).
+ * Change them without redeploying code via Text variables: VISITOR_PER_10S, VISITOR_PER_MINUTE, GLOBAL_PER_MINUTE, GLOBAL_PER_DAY.
+ */
+const visitorHits = new Map()
+let globalHits = []
+const num = (v, d) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d)
+export function resetLimitsForTests() { visitorHits.clear(); globalHits = [] }
+function limited(ip, env, now = Date.now()) {
+  const v = [{ windowMs: 10_000, max: num(env.VISITOR_PER_10S, 4) }, { windowMs: 60_000, max: num(env.VISITOR_PER_MINUTE, 10) }]
+  const g = [{ windowMs: 60_000, max: num(env.GLOBAL_PER_MINUTE, 15) }, { windowMs: 86_400_000, max: num(env.GLOBAL_PER_DAY, 1000) }]
+  const mine = (visitorHits.get(ip) ?? []).filter((t) => now - t < 60_000)
+  globalHits = globalHits.filter((t) => now - t < 86_400_000)
+  const over = v.find((l) => mine.filter((t) => now - t < l.windowMs).length >= l.max) ?? g.find((l) => globalHits.filter((t) => now - t < l.windowMs).length >= l.max)
+  visitorHits.set(ip, mine)
+  if (over) return Math.min(Math.ceil(over.windowMs / 1000), 3600)
+  mine.push(now)
+  globalHits.push(now)
+  if (visitorHits.size > 5000) for (const [k, h] of visitorHits) if (!h.some((t) => now - t < 60_000)) visitorHits.delete(k)
   return 0
 }
 
@@ -121,14 +134,14 @@ export default {
     if (request.method !== 'POST') return json(405, { error: 'POST only' }, headers)
     if (!env.GEMINI_API_KEY) return json(500, { error: 'Server is missing GEMINI_API_KEY' }, headers)
 
-    const wait = limited(request.headers.get('CF-Connecting-IP') ?? 'unknown')
+    const wait = limited(request.headers.get('CF-Connecting-IP') ?? 'unknown', env)
     if (wait) return json(429, { error: 'rate_limited', retryAfterSeconds: wait }, { ...headers, 'Retry-After': String(wait) })
 
     const raw = await request.text()
     if (raw.length > MAX_BYTES) return json(413, { error: 'Request too large' }, headers)
     let body
     try { body = JSON.parse(raw) } catch { return json(400, { error: 'Invalid JSON' }, headers) }
-    const { model, system, user, contents, tools } = body ?? {}
+    const { model, system, user, contents, tools, toolMode } = body ?? {}
     if (typeof model !== 'string' || !MODEL_OK.test(model)) return json(400, { error: 'Invalid model' }, headers)
     if (typeof system !== 'string' || system.length > MAX_BYTES) return json(400, { error: 'Missing or invalid system text' }, headers)
     let turns
@@ -145,6 +158,7 @@ export default {
       const bad = validateTools(tools)
       if (bad) return json(400, { error: bad }, headers)
     }
+    if (toolMode !== undefined && toolMode !== 'AUTO' && toolMode !== 'NONE') return json(400, { error: 'Invalid toolMode' }, headers)
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
@@ -152,7 +166,7 @@ export default {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: `${GUARD}\n\n${system}` }] },
         contents: turns,
-        ...(tools ? { tools, toolConfig: { functionCallingConfig: { mode: 'AUTO' } } } : {}),
+        ...(tools ? { tools, toolConfig: { functionCallingConfig: { mode: toolMode === 'NONE' ? 'NONE' : 'AUTO' } } } : {}),
         generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, maxOutputTokens: 8192 },
       }),
     })

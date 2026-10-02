@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { CATALOG, SCHEDULABLE, byId } from '../data'
 import { parseDpr } from '../dpr/parse'
 import { DEFAULT_PREFS } from '../recommend/recommend'
-import { TOOL_DECLARATIONS, runTool } from './geminiTools'
+import { TOOL_DECLARATIONS, needsGraphTools, runTool } from './geminiTools'
 import type { ToolEnv } from './geminiTools'
 
 const report = parseDpr(readFileSync(new URL('../dpr/fixtures/sample-dpr.txt', import.meta.url), 'utf8'))
@@ -97,5 +97,14 @@ describe('runTool: the real graph under the hood', () => {
     for (const call of [['search_courses', {}], ['open_requirements', {}], ['recommend', {}], ['unlocks', { code: 'CSC 101' }]] as const) {
       expect(JSON.stringify(run(call[0], call[1])).length).toBeLessThan(7000)
     }
+  })
+})
+
+describe('needsGraphTools (one request unless the graph is involved)', () => {
+  it('gives tools to prerequisite-chain and search questions', () => {
+    for (const q of ['What do I need before DES 505?', 'prerequisites for CSC 220', 'What does DES 222 unlock?', 'fewest terms to finish my major', 'how many semesters until I can take DES 505', 'find classes about web design', 'what is the path to DES 505', 'which courses require DES 200']) expect(needsGraphTools(q), q).toBe(true)
+  })
+  it('answers everyday planning questions from the prompt in a single request', () => {
+    for (const q of ['What can I take online right now toward my major?', 'Add DES 300 please', 'Keep me off campus on Fridays', 'How many units am I at?', 'Prefer online classes']) expect(needsGraphTools(q), q).toBe(false)
   })
 })

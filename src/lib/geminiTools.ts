@@ -169,3 +169,10 @@ export function runTool(name: string, rawArgs: unknown, env: ToolEnv): unknown {
       return { error: `Unknown tool "${t(name, 30)}".` }
   }
 }
+
+/**
+ * Only questions about the prerequisite graph or a search get the tools; everything else is answered from the prompt in ONE request.
+ * Each tool round is another request against a small shared quota (15/minute), and lighter models over-use tools when offered.
+ */
+const GRAPH_CUES = /\b(prereq\w*|pre-req\w*|before|unlock\w*|path|chain|sequence|order|fewest|fastest|earliest|soonest|how (many|long) (terms?|semesters?|quarters?)|depends?|leads? to|opens? up|requires?|required for|find|search|look ?up|anything (about|on)|classes? (about|on)|courses? (about|on))\b/i
+export const needsGraphTools = (question: string) => GRAPH_CUES.test(question)

@@ -6,8 +6,8 @@ import { completedCodes, inProgressCodes } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
 import type { Prefs, Recommendation } from '../recommend/recommend'
 import type { Course } from '../data'
-import { askGeminiAgent, getGeminiKey, keyIsFromBuild, saveGeminiKey, usesProxy } from '../lib/gemini'
-import { TOOL_DECLARATIONS, runTool } from '../lib/geminiTools'
+import { askGeminiAgent, askGeminiJson, getGeminiKey, keyIsFromBuild, saveGeminiKey, usesProxy } from '../lib/gemini'
+import { TOOL_DECLARATIONS, needsGraphTools, runTool } from '../lib/geminiTools'
 
 interface Msg { role: 'user' | 'ai'; text: string }
 
@@ -30,20 +30,23 @@ export default function GeminiTab({ accepted, onApply, report, prefs, rec }: { a
     setText('')
     const pre = precheckQuestion(raw)
     if (!pre.ok) { setMsgs((m) => [...m, { role: 'user', text: raw.slice(0, 500) }, { role: 'ai', text: pre.reply }]); return }
-    if (Date.now() - lastSent.current < 2000) { setMsgs((m) => [...m, { role: 'user', text: pre.question }, { role: 'ai', text: 'Wait a few seconds before the next question.' }]); return }
+    if (Date.now() - lastSent.current < 4000) { setMsgs((m) => [...m, { role: 'user', text: pre.question }, { role: 'ai', text: 'Wait a few seconds before the next question.' }]); return }
     lastSent.current = Date.now()
     setMsgs((m) => [...m, { role: 'user', text: pre.question }])
     setLookups([])
     setBusy(true)
     try {
       const system = buildGeminiContext({ report, accepted, catalog: SCHEDULABLE, prefs, rec })
-      const raw = await askGeminiAgent<unknown>({
-        system,
-        question: `<question>${pre.question}</question>`,
-        tools: TOOL_DECLARATIONS,
-        run: (name, args) => runTool(name, args, { report, accepted, schedulable: SCHEDULABLE, all: CATALOG, prefs }),
-        onTool: (name) => setLookups((l) => [...l, name.replace(/_/g, ' ')]),
-      })
+      const question = `<question>${pre.question}</question>`
+      const raw = needsGraphTools(pre.question)
+        ? await askGeminiAgent<unknown>({
+            system,
+            question,
+            tools: TOOL_DECLARATIONS,
+            run: (name, args) => runTool(name, args, { report, accepted, schedulable: SCHEDULABLE, all: CATALOG, prefs }),
+            onTool: (name) => setLookups((l) => [...l, name.replace(/_/g, ' ')]),
+          })
+        : await askGeminiJson<unknown>(system, question) // one request, no tools
       const doing = report ? inProgressCodes(report) : new Set<string>()
       const assumed = new Set([...(report ? completedCodes(report) : []), ...doing])
       const safe = sanitizeReply(raw, { catalog: SCHEDULABLE, accepted, assumed, doing })

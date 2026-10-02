@@ -78,9 +78,20 @@ describe('sanitizeReply (what the model says never bypasses these checks)', () =
   it('adds only classes that exist, are new and are eligible', () => {
     const r = reply({ add: ['DES 300 [01]', 'DES 322 [01]', 'NOPE 999 [01]', 'DES 200 [01]', 'DES 228 [01]'] })
     expect(r.add.map((c) => `${c.code} [${c.section}]`)).toEqual(['DES 300 [01]'])
-    expect(r.message).toMatch(/DES 322 \[01\] \(prerequisites not met\)/)
+    expect(r.message).toMatch(/DES 322 \[01\] \(needs DES 222\)/)
     expect(r.message).toMatch(/NOPE 999 01 \(not a class I know\)/)
     expect(r.message).toMatch(/DES 228 \[01\] \(already on your report\)/)
+  })
+  it('discards the model\'s claim of success when the checks refused everything, and says what is missing', () => {
+    const r = reply({ message: 'Added DES 322 [01]. It meets on Friday.', add: ['DES 322 [01]'] })
+    expect(r.add).toEqual([])
+    expect(r.message).toBe('Not added: DES 322 [01] (needs DES 222).')
+    expect(r.message).not.toMatch(/Added DES 322/)
+  })
+  it('keeps the model message when some adds were accepted and appends the refused ones', () => {
+    const r = reply({ message: 'DES 300 fits your Tuesday.', add: ['DES 300 [01]', 'DES 322 [01]'] })
+    expect(r.add.map((c) => c.code)).toEqual(['DES 300'])
+    expect(r.message).toMatch(/^DES 300 fits your Tuesday\.\n\nNot added: DES 322 \[01\] \(needs DES 222\)\.$/)
   })
   it('removes only things that are on the schedule', () => {
     expect(reply({ remove: ['DES 200 [01]', 'DES 300 [01]', 'x'] }).remove).toEqual(['DES 200 [01]'])

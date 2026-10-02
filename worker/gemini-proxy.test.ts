@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // @ts-expect-error plain JS module deployed as-is to Cloudflare
-import worker from './gemini-proxy.js'
+import worker, { resetLimitsForTests } from './gemini-proxy.js'
 
 const ORIGIN = 'https://elnai534.github.io'
 const env = { GEMINI_API_KEY: 'secret-key-xyz' }
@@ -11,7 +11,8 @@ const req = (body: unknown, init: RequestInit = {}) =>
 const good = { model: 'gemini-3.8-flash', system: 'sys', user: 'hello' }
 
 let upstream: ReturnType<typeof vi.fn>
-beforeEach(() => { upstream = vi.fn().mockImplementation(() => Promise.resolve(new Response('{"candidates":[]}', { status: 200 }))); vi.stubGlobal('fetch', upstream) })
+beforeEach(() => {
+  resetLimitsForTests(); upstream = vi.fn().mockImplementation(() => Promise.resolve(new Response('{"candidates":[]}', { status: 200 }))); vi.stubGlobal('fetch', upstream) })
 afterEach(() => vi.unstubAllGlobals())
 
 describe('gemini proxy worker: safety rules enforced server-side', () => {
@@ -36,20 +37,50 @@ describe('gemini proxy worker: safety rules enforced server-side', () => {
     expect((await worker.fetch(req({ ...good, user: 'x'.repeat(801) }), env)).status).toBe(400)
     expect(upstream).not.toHaveBeenCalled()
   })
-  it('rate limits one visitor: 6 per 10 seconds', async () => {
-    const mk = () => new Request('https://proxy.test/', { method: 'POST', headers: { Origin: ORIGIN, 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.7' }, body: JSON.stringify(good) })
+  const mkFrom = (ip: string) => () => new Request('https://proxy.test/', { method: 'POST', headers: { Origin: ORIGIN, 'Content-Type': 'application/json', 'CF-Connecting-IP': ip }, body: JSON.stringify(good) })
+  it('rate limits one visitor: 4 requests per 10 seconds', async () => {
+    const mk = mkFrom('203.0.113.7')
     const codes = []
-    for (let i = 0; i < 8; i++) codes.push((await worker.fetch(mk(), env)).status)
-    expect(codes).toEqual([200, 200, 200, 200, 200, 200, 429, 429])
+    for (let i = 0; i < 6; i++) codes.push((await worker.fetch(mk(), env)).status)
+    expect(codes).toEqual([200, 200, 200, 200, 429, 429])
     const blocked = await worker.fetch(mk(), env)
     expect(await blocked.json()).toMatchObject({ error: 'rate_limited' })
     expect(blocked.headers.get('Retry-After')).toBeTruthy()
-    expect(upstream).toHaveBeenCalledTimes(6) // blocked requests never reach Google
+    expect(upstream).toHaveBeenCalledTimes(4) // blocked requests never reach Google
   })
-  it('limits per visitor, not globally', async () => {
-    const mk = (ip: string) => new Request('https://proxy.test/', { method: 'POST', headers: { Origin: ORIGIN, 'Content-Type': 'application/json', 'CF-Connecting-IP': ip }, body: JSON.stringify(good) })
-    for (let i = 0; i < 7; i++) await worker.fetch(mk('198.51.100.1'), env)
-    expect((await worker.fetch(mk('198.51.100.2'), env)).status).toBe(200)
+  it('one visitor cannot use more than 10 requests a minute', async () => {
+    const mk = mkFrom('203.0.113.8')
+    vi.useFakeTimers()
+    try {
+      const codes = []
+      for (let i = 0; i < 12; i++) { codes.push((await worker.fetch(mk(), env)).status); vi.advanceTimersByTime(3000) } // 3s apart: under the 10s burst rule
+      expect(codes.filter((c) => c === 200).length).toBe(10)
+      expect(codes.slice(10)).toEqual([429, 429])
+    } finally { vi.useRealTimers() }
+  })
+  it('limits per visitor, not per everyone: a second visitor is unaffected by the first', async () => {
+    for (let i = 0; i < 6; i++) await worker.fetch(mkFrom('198.51.100.1')(), env)
+    expect((await worker.fetch(mkFrom('198.51.100.2')(), env)).status).toBe(200)
+  })
+  it('enforces the project-wide 15 requests per minute across all visitors (Flash-Lite allowance)', async () => {
+    const codes = []
+    for (let i = 0; i < 17; i++) codes.push((await worker.fetch(mkFrom(`192.0.2.${i + 1}`)(), env)).status) // 17 different visitors
+    expect(codes.filter((c) => c === 200).length).toBe(15)
+    expect(codes.slice(15)).toEqual([429, 429])
+    expect(upstream).toHaveBeenCalledTimes(15)
+  })
+  it('enforces 1,000 requests per day across all visitors', async () => {
+    vi.useFakeTimers()
+    try {
+      let ok = 0
+      for (let i = 0; i < 1003; i++) { const r = await worker.fetch(mkFrom(`10.9.${Math.floor(i / 200)}.${i % 200}`)(), env); if (r.status === 200) ok++; vi.advanceTimersByTime(5000) }
+      expect(ok).toBe(1000)
+    } finally { vi.useRealTimers() }
+  })
+  it('limits can be changed with Text variables, without editing code', async () => {
+    const codes = []
+    for (let i = 0; i < 4; i++) codes.push((await worker.fetch(mkFrom(`172.16.0.${i}`)(), { ...env, GLOBAL_PER_MINUTE: '2' })).status)
+    expect(codes).toEqual([200, 200, 429, 429])
   })
 })
 
@@ -70,6 +101,12 @@ describe('gemini proxy worker: tool conversations (strict allow-list)', () => {
     expect(sent.toolConfig).toEqual({ functionCallingConfig: { mode: 'AUTO' } })
     expect(sent.generationConfig.responseSchema.required).toContain('onTopic')
     expect(sent.systemInstruction.parts[0].text.startsWith('SERVER RULES')).toBe(true)
+  })
+  it('toolMode NONE switches tool calls off for the final answer; other values are rejected', async () => {
+    const res = await post({ contents: [q, call, result], tools, toolMode: 'NONE' })
+    expect(res.status).toBe(200)
+    expect(JSON.parse(String((upstream.mock.calls[0][1] as RequestInit).body)).toolConfig).toEqual({ functionCallingConfig: { mode: 'NONE' } })
+    expect((await post({ contents: [q], tools, toolMode: 'ANY' })).status).toBe(400)
   })
   it('still accepts the simple { system, user } form', async () => {
     expect((await worker.fetch(req(good), env)).status).toBe(200)

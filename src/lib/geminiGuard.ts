@@ -114,12 +114,17 @@ export function sanitizeReply(raw: unknown, ctx: ReplyContext): SafeReply {
     if (!c) dropped.push(`${sanitizeField(id, 30)} (not a class I know)`)
     else if (acceptedIds.has(id) || add.includes(c)) continue
     else if (ctx.assumed.has(c.code)) dropped.push(`${id} (already on your report)`)
-    else if (!eligibility(c.node, ctx.assumed, ctx.doing).ok) dropped.push(`${id} (prerequisites not met)`)
-    else add.push(c)
+    else {
+      const el = eligibility(c.node, ctx.assumed, ctx.doing)
+      if (el.ok) add.push(c)
+      else dropped.push(`${id} (needs ${el.unmet.map((g) => g.join(' or ')).join(' and ')})`)
+    }
   }
   const remove = [...new Set((Array.isArray(o.remove) ? o.remove : []).filter(isStr).slice(0, 10))].filter((id) => acceptedIds.has(id))
 
   let message = isStr(o.message) ? stripEmpathy(stripUrls(o.message.replace(CONTROL, ' ').replace(/[<>]/g, '')).replace(/[ \t]+/g, ' ').trim()).slice(0, MAX_MESSAGE) : ''
+  // The model may claim it added something the checks refused; when nothing was added, its claim is discarded.
+  if (dropped.length && !add.length) message = ''
   if (dropped.length) message += `${message ? '\n\n' : ''}Not added: ${dropped.join('; ')}.`
   if (!message && !add.length && !remove.length) message = OFF_TOPIC_MESSAGE
   return { onTopic: true, message, add, remove, dropped }

@@ -1,5 +1,8 @@
-/** Tried in order. A retired model (404) or a busy one (429/503) falls through to the next. */
-export const MODELS: string[] = [import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-flash-latest']
+/**
+ * Tried in order. Flash-Lite first: its free allowance (15 requests/minute, 1,000/day) is far larger than the full Flash models'
+ * (20/day). A retired model (404) or a busy/over-quota one (429/503) falls through to the next.
+ */
+export const MODELS: string[] = [import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash']
 const RETRYABLE = new Set([404, 429, 500, 503])
 
 /** Structured output: the model can only answer in this shape. */
@@ -67,14 +70,14 @@ export interface AgentOptions {
 interface Part { text?: string; functionCall?: { name: string; args?: unknown; id?: string }; thoughtSignature?: string; [k: string]: unknown }
 interface Content { role: 'user' | 'model'; parts: Part[] }
 
-async function callModels(system: string, contents: Content[], tools: readonly object[]): Promise<{ parts: Part[]; content: Content }> {
+async function callModels(system: string, contents: Content[], tools: readonly object[], forceAnswer = false): Promise<{ parts: Part[]; content: Content }> {
   const KEY = getGeminiKey()
   if (!usesProxy && !KEY) throw new Error('Add your Gemini API key above first.')
   let res: Response | null = null
   let lastErr = ''
   for (const model of MODELS) {
     res = usesProxy
-      ? await fetch(PROXY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model, system, contents, tools: [{ functionDeclarations: tools }] }) })
+      ? await fetch(PROXY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model, system, contents, tools: [{ functionDeclarations: tools }], ...(forceAnswer ? { toolMode: 'NONE' } : {}) }) })
       : await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': KEY },
@@ -82,6 +85,7 @@ async function callModels(system: string, contents: Content[], tools: readonly o
             systemInstruction: { parts: [{ text: system }] },
             contents,
             tools: [{ functionDeclarations: tools }],
+            ...(forceAnswer ? { toolConfig: { functionCallingConfig: { mode: 'NONE' } } } : {}),
             generationConfig: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA, maxOutputTokens: 8192 },
           }),
         })
@@ -96,10 +100,11 @@ async function callModels(system: string, contents: Content[], tools: readonly o
   return { parts: content.parts, content }
 }
 
-export async function askGeminiAgent<T>({ system, question, tools, run, maxSteps = 4, onTool }: AgentOptions): Promise<T> {
+export async function askGeminiAgent<T>({ system, question, tools, run, maxSteps = 2, onTool }: AgentOptions): Promise<T> {
   const contents: Content[] = [{ role: 'user', parts: [{ text: question }] }]
   for (let step = 0; step <= maxSteps; step++) {
-    const { parts, content } = await callModels(system, contents, tools)
+    // After maxSteps rounds of lookups the model must answer with what it has (tool calls switched off), instead of failing.
+    const { parts, content } = await callModels(system, contents, tools, step === maxSteps)
     const calls = parts.filter((p) => p.functionCall)
     if (!calls.length) {
       const text = parts.map((p) => p.text ?? '').join('')
@@ -109,7 +114,7 @@ export async function askGeminiAgent<T>({ system, question, tools, run, maxSteps
         throw new Error('Gemini’s answer was cut off or malformed. Please try again.')
       }
     }
-    if (step === maxSteps) break
+    if (step === maxSteps) break // still asking for tools while they are switched off
     contents.push(content) // unchanged, including thoughtSignature, as Gemini 3 requires
     contents.push({
       role: 'user',
