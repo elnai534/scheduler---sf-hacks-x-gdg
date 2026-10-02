@@ -5,12 +5,14 @@ import GeminiTab from '../components/GeminiTab'
 import PlanTab from '../components/PlanTab'
 import { cid, countConflicts, range } from '../data'
 import type { Course } from '../data'
+import type { DprReport } from '../dpr/types'
 
 type Tab = 'plan' | 'courses' | 'gemini'
 const TABS: { id: Tab; label: string }[] = [{ id: 'plan', label: 'Plan' }, { id: 'courses', label: 'Courses' }, { id: 'gemini', label: 'Ask Gemini' }]
 
 interface Props {
   initialTab: Tab
+  report: DprReport | null
   accepted: Course[]
   onToggle: (c: Course) => void
   onApply: (add: Course[], remove: string[]) => void
@@ -53,7 +55,7 @@ export default function Build(p: Props) {
           </div>
           <div className="flex-1 overflow-y-auto">
             {tab === 'plan' && <PlanTab {...p} note={note} onGenerate={() => setNote(p.onGenerate())} />}
-            {tab === 'courses' && <CoursesTab accepted={p.accepted} onToggle={p.onToggle} />}
+            {tab === 'courses' && <CoursesTab accepted={p.accepted} onToggle={p.onToggle} report={p.report} />}
             {tab === 'gemini' && <GeminiTab accepted={p.accepted} onApply={p.onApply} />}
           </div>
         </section>

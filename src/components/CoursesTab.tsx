@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { CATALOG, SCHEDULABLE, cid, conflictsWith, fmt } from '../data'
 import type { Course } from '../data'
+import { completedCodes, inProgressCodes } from '../dpr/parse'
+import type { DprReport } from '../dpr/types'
+import { eligibility } from '../dag/graph'
 
 const meetingLine = (c: Course) => {
   if (c.mode === 'Catalog only') return 'Section times not in the catalog'
@@ -10,7 +13,9 @@ const meetingLine = (c: Course) => {
   return `${m.day} ${fmt(m.start).replace(' AM', '').replace(' PM', '')}–${fmt(m.end)}${more}`
 }
 
-export default function CoursesTab({ accepted, onToggle }: { accepted: Course[]; onToggle: (c: Course) => void }) {
+export default function CoursesTab({ accepted, onToggle, report }: { accepted: Course[]; onToggle: (c: Course) => void; report: DprReport | null }) {
+  const done = report ? completedCodes(report) : null
+  const doing = report ? inProgressCodes(report) : null
   const [q, setQ] = useState('')
   const [term, setTerm] = useState('Fall 2026')
   const [session, setSession] = useState('Academic Regular Session')
@@ -71,6 +76,13 @@ export default function CoursesTab({ accepted, onToggle }: { accepted: Course[];
             <div className="mt-2 text-sm font-semibold">{c.title}</div>
             <div className="text-xs text-slate-500">{c.kind} · {c.classNumber ? `Class #${c.classNumber}` : 'Catalog entry'} · {c.units} units</div>
             <div className="mt-2 text-xs">{meetingLine(c)}</div>
+            {done && doing && (() => {
+              const e = eligibility(c.node, new Set([...done, ...doing]), doing) // in-progress courses are assumed to finish
+              const have = doing.has(c.code) || done.has(c.code)
+              return have ? <div className="mt-1 text-xs font-semibold text-slate-500">Already on your report</div>
+                : e.ok ? <div className="mt-1 text-xs font-semibold text-emerald-700">Prerequisites met{e.needsHumanCheck ? ' · check restrictions' : ''}</div>
+                : <div className="mt-1 text-xs font-semibold text-amber-800">Needs: {e.unmet.map((g) => g.join(' or ')).join('; ')}</div>
+            })()}
             {c.prereqText && <div className="mt-1 line-clamp-2 text-xs text-slate-500">Prerequisites: {c.prereqText}</div>}
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-slate-600">{c.mode === 'Catalog only' ? 'No seat data' : `${c.seats} seats · ${c.waitlist} waitlist`}{clash && <b className="ml-2 text-red-700">Time conflict</b>}</span>

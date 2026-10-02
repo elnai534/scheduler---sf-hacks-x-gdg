@@ -32,12 +32,13 @@ export interface Course {
   requirement: 'Major' | 'SF State' | 'General Education'
   prereqText: string
   description: string
+  node: CourseNode
 }
 
 /** Every course comes from the scraped bulletin catalog (src/data/courses.json). Section details overlay by code. */
 export const CATALOG: Course[] = (catalog as CourseNode[]).flatMap((n): Course[] => {
   const base = {
-    code: n.code, title: n.title, units: n.units ?? 3, prereqText: n.prereqText, description: n.description,
+    code: n.code, title: n.title, units: n.units ?? 3, prereqText: n.prereqText, description: n.description, node: n,
     division: Number(/\d+/.exec(n.code)![0]) >= 300 ? 'Upper Division' : 'Lower Division',
   }
   const sections = SECTIONS[n.code]
