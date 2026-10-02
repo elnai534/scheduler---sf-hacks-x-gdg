@@ -68,8 +68,8 @@ export default function Build(p: Props) {
               <h2 className="flex items-center gap-2 text-xl font-bold"><span className="icon text-2xl text-brand-900">event_available</span>Accepted schedule</h2>
               <p className="mt-1 text-xs text-slate-500">Only applied sections appear here and in PDF export. Select a class block for details.</p>
             </div>
-            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${blocking ? 'border-red-200 bg-red-50 text-red-700' : 'border-green-200 bg-green-50 text-green-800'}`}>
-              {blocking ? `${blocking} blocking conflict${blocking > 1 ? 's' : ''}` : 'No blocking conflicts'}
+            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${blocking ? 'border-yellow-300 bg-yellow-100 text-yellow-800' : 'border-green-200 bg-green-50 text-green-800'}`}>
+              {blocking ? `${blocking} conflict${blocking > 1 ? 's' : ''}` : 'No conflicts'}
             </span>
           </div>
           <div className="mt-4"><Calendar courses={timed} selected={selected} onSelect={setSelected} /></div>
