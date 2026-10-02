@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePersisted } from './lib/persist'
 import Header from './components/Header'
 import type { Step } from './components/Header'
 import Build from './pages/Build'
@@ -15,11 +16,11 @@ import type { Course } from './data'
 
 export default function App() {
   const [step, setStep] = useState<Step>('pathway')
-  const [program, setProgram] = useState<Program>({ career: '', degree: '', major: '', minor: '' })
-  const [report, setReport] = useState<DprReport | null>(null)
+  const [program, setProgram] = usePersisted<Program>('program', { career: '', degree: '', major: '', minor: '' })
+  const [report, setReport] = usePersisted<DprReport | null>('report', null)
   const [openTab, setOpenTab] = useState<'plan' | 'courses' | 'gemini'>('plan')
-  const [ids, setIds] = useState<string[]>([])
-  const [priorities, setPriorities] = useState(['Major Requirements', 'SF State Requirements', 'Consolidate campus days', 'General Education Requirements'])
+  const [ids, setIds] = usePersisted<string[]>('ids', [])
+  const [priorities, setPriorities] = usePersisted('priorities', ['Major Requirements', 'SF State Requirements', 'Consolidate campus days', 'General Education Requirements'])
 
   const accepted = ids.map(byId).filter((c): c is Course => Boolean(c))
 
@@ -52,10 +53,11 @@ export default function App() {
       {step === 'pathway' && <Pathway onNext={() => setStep('setup')} />}
       {step === 'setup' && <Setup program={program} setProgram={setProgram} onBack={() => setStep('pathway')} onNext={() => setStep('degree')} onReport={setReport} />}
       {step === 'degree' && <Degree report={report} program={program} onNext={() => { setOpenTab('plan'); setStep('build') }} onBrowse={() => { setOpenTab('courses'); setStep('build') }} />}
-      {step === 'build' && (
-        <Build report={report} initialTab={openTab} accepted={accepted} onToggle={toggle} onApply={apply} onGenerate={generate} onReview={() => setStep('review')}
+      {/* Always mounted (hidden off-step) so tab, preferences, filters and chat survive switching steps. */}
+      <div hidden={step !== 'build'}>
+        <Build report={report} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={toggle} onApply={apply} onGenerate={generate} onReview={() => setStep('review')}
           priorities={priorities} setPriorities={setPriorities} />
-      )}
+      </div>
       {step === 'review' && <Review courses={accepted} onBack={() => setStep('build')} />}
     </div>
   )

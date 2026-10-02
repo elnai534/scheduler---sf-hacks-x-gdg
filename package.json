@@ -12,6 +12,7 @@
     "scrape": "node scripts/scrape-bulletin.ts des csc biol ais math"
   },
   "dependencies": {
+    "pdfjs-dist": "^6.3.289",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

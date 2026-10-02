@@ -13,7 +13,7 @@ type Tab = 'plan' | 'courses' | 'gemini'
 const TABS: { id: Tab; label: string }[] = [{ id: 'plan', label: 'Plan' }, { id: 'courses', label: 'Courses' }, { id: 'gemini', label: 'Ask Gemini' }]
 
 interface Props {
-  initialTab: Tab
+  tab: Tab; setTab: (t: Tab) => void
   report: DprReport | null
   accepted: Course[]
   onToggle: (c: Course) => void
@@ -24,7 +24,7 @@ interface Props {
 }
 
 export default function Build(p: Props) {
-  const [tab, setTab] = useState<Tab>(p.initialTab)
+  const { tab, setTab } = p
   const [selected, setSelected] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS)
@@ -56,10 +56,10 @@ export default function Build(p: Props) {
             ))}
           </div>
           <div className="flex-1 overflow-y-auto">
-            {tab === 'plan' && <PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} rec={rec} note={note}
-              onGenerate={() => { const r = p.onGenerate(prefs); if (typeof r === 'string') { setNote(r); setRec(null) } else { setNote(''); setRec(r) } }} />}
-            {tab === 'courses' && <CoursesTab accepted={p.accepted} onToggle={p.onToggle} report={p.report} />}
-            {tab === 'gemini' && <GeminiTab accepted={p.accepted} onApply={p.onApply} report={p.report} prefs={prefs} rec={rec} />}
+            <div hidden={tab !== 'plan'}><PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} rec={rec} note={note}
+              onGenerate={() => { const r = p.onGenerate(prefs); if (typeof r === 'string') { setNote(r); setRec(null) } else { setNote(''); setRec(r) } }} /></div>
+            <div hidden={tab !== 'courses'}><CoursesTab accepted={p.accepted} onToggle={p.onToggle} report={p.report} /></div>
+            <div hidden={tab !== 'gemini'}><GeminiTab accepted={p.accepted} onApply={p.onApply} report={p.report} prefs={prefs} rec={rec} /></div>
           </div>
         </section>
         <section className="p-5">

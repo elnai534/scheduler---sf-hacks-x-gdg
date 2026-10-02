@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { parseDpr } from '../dpr/parse'
+import { pdfToText } from '../dpr/pdf'
 import sampleDpr from '../dpr/fixtures/sample-dpr.txt?raw'
 import type { DprReport } from '../dpr/types'
 
@@ -8,14 +9,19 @@ export interface Program { career: string; degree: string; major: string; minor:
 const sel = 'mt-2 w-full rounded-lg border border-slate-400 bg-white px-3 py-2.5 text-sm font-normal outline-brand-700'
 
 export default function Setup({ program, setProgram, onNext, onBack, onReport }: { program: Program; setProgram: (p: Program) => void; onNext: () => void; onBack: () => void; onReport: (r: DprReport) => void }) {
-  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const submit = (raw: string) => {
     const r = parseDpr(raw)
-    if (!r.requirements.length) { setErr('No requirements found. Copy the whole Degree Progress Report page (expand all sections first) and paste it here.'); return }
+    if (!r.requirements.length) { setErr('No requirements found. Upload the full Degree Progress Report PDF (expand all sections before saving it as a PDF).'); return }
     setErr('')
     onReport(r)
     onNext()
+  }
+  const upload = async (file: File | undefined) => {
+    if (!file) return
+    setBusy(true)
+    try { submit(await pdfToText(file)) } catch { setErr('Could not read that PDF. Upload your Degree Progress Report as a PDF file.') } finally { setBusy(false) }
   }
   const set = (k: keyof Program) => (e: React.ChangeEvent<HTMLSelectElement>) => setProgram({ ...program, [k]: e.target.value })
   return (
@@ -39,13 +45,15 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
           <section className="rounded-2xl border border-dashed border-violet-400 bg-slate-100 p-5">
             <div className="flex items-start gap-4">
               <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-brand-900"><span className="icon text-xl">cloud_upload</span></div>
-              <div className="flex-1"><div className="font-bold">Paste your Degree Progress Report (DPR)</div>
-                <p className="mt-1 text-sm text-slate-600">Optional. Open your report, click “Expand All”, “View All” on long lists, then copy and paste the page text. Your name and student ID are never read or stored.</p></div>
+              <div className="flex-1"><div className="font-bold">Upload your Degree Progress Report (PDF)</div>
+                <p className="mt-1 text-sm text-slate-600">Optional. Open your report, click “Expand All”, “View All” on long lists, then save or print the page as a PDF and upload it. Your name and student ID are never read or stored.</p></div>
             </div>
-            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5} placeholder="Paste report text here…" className="mt-3 w-full rounded-lg border border-slate-300 bg-white p-3 text-xs outline-brand-700" />
+            <label className="mt-3 flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white p-6 text-sm text-slate-600 hover:bg-slate-50">
+              {busy ? 'Reading PDF…' : 'Choose a PDF file'}
+              <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={busy} onChange={(e) => { upload(e.target.files?.[0]); e.target.value = '' }} />
+            </label>
             {err && <div className="mt-2 text-sm text-red-700">{err}</div>}
             <div className="mt-3 flex gap-2">
-              <button onClick={() => submit(text)} disabled={!text.trim()} className="rounded-lg border border-brand-900 bg-white px-4 py-2 text-sm font-semibold text-brand-900 disabled:opacity-40">Read report</button>
               <button onClick={() => submit(sampleDpr)} className="px-3 py-2 text-sm font-semibold text-brand-900 underline">Use sample report</button>
             </div>
           </section>
