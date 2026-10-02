@@ -24,3 +24,9 @@ export const matchesCourse = (c: { code: string; title: string }, f: CourseFilte
 }
 
 export const filterCourses = <T extends { code: string; title: string }>(cs: T[], f: CourseFilter): T[] => cs.filter((c) => matchesCourse(c, f))
+
+const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+
+/** "Begins at/after" / "Ends at/before" ("HH:MM", empty = no limit). Every meeting must fit; a course with no meeting times can't be shown to fit. */
+export const meetsTimeWindow = (meetings: { start: number; end: number }[], after: string, before: string) =>
+  (!after && !before) || (meetings.length > 0 && meetings.every((m) => (!after || m.start >= toMin(after)) && (!before || m.end <= toMin(before))))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_FILTER, filterCourses, isFiltered, levelOf, subjectOf } from './courseFilter'
+import { EMPTY_FILTER, filterCourses, isFiltered, levelOf, meetsTimeWindow, subjectOf } from './courseFilter'
 
 const cs = [
   { code: 'DES 200', title: 'Visual Design Literacy' },
@@ -47,4 +47,15 @@ describe('search ignores case and spaces', () => {
     expect(codes({ q: '  visual   design ' })).toEqual(['DES 200'])
     expect(codes({ q: 'GRADUATESEMINAR' })).toEqual(['CSC 700'])
   })
+})
+
+describe('meetsTimeWindow', () => {
+  const m = [{ start: 9 * 60, end: 10 * 60 }]
+  it('no limits passes everything, even untimed', () => expect(meetsTimeWindow([], '', '')).toBe(true))
+  it('after/before bound every meeting', () => {
+    expect(meetsTimeWindow(m, '09:00', '10:00')).toBe(true)
+    expect(meetsTimeWindow(m, '09:30', '')).toBe(false)
+    expect(meetsTimeWindow(m, '', '09:30')).toBe(false)
+  })
+  it('an untimed course fails once a limit is set', () => expect(meetsTimeWindow([], '08:00', '')).toBe(false))
 })

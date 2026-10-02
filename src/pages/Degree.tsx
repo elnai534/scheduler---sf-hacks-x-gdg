@@ -2,11 +2,17 @@ import { openRequirements } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
 import type { Course } from '../data'
 import MissingCourses from '../components/MissingCourses'
+import { useState } from 'react'
+import { applyChange, DEGREES, MAJORS, MINORS, degreeEnabled, majorEnabled, minorEnabled } from '../programRules'
 import type { Program } from './Setup'
+
+const sel = 'mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 text-sm font-normal outline-brand-700'
 
 const ICONS = [['check_circle', 'Completed', 'text-emerald-700'], ['schedule', 'In progress', 'text-brand-900'], ['menu_book', 'Remaining', 'text-slate-700']] as const
 
-export default function Degree({ program, report, accepted, onToggle, onNext }: { program: Program; report: DprReport | null; accepted: Course[]; onToggle: (c: Course) => void; onNext: () => void }) {
+export default function Degree({ program, setProgram, report, accepted, onToggle, onNext }: { program: Program; setProgram: (p: Program) => void; report: DprReport | null; accepted: Course[]; onToggle: (c: Course) => void; onNext: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const set = (k: keyof Program) => (e: React.ChangeEvent<HTMLSelectElement>) => setProgram(applyChange(program, k, e.target.value))
   const counts = report
     ? [
         report.courses.filter((c) => c.status === 'completed' || c.status === 'transfer'),
@@ -28,6 +34,18 @@ export default function Degree({ program, report, accepted, onToggle, onNext }: 
             <div className="flex items-start justify-between"><h2 className="text-xl font-bold">{title}</h2>
               <span className="flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold"><span className="icon text-sm">{report ? 'description' : 'person'}</span>{report ? 'From report' : 'Student entered'}</span></div>
             <div className="mt-2 text-sm text-slate-600">{report ? `${report.career} · ${report.program} · Current term ${report.lastTerm}` : `${program.career || 'Career not selected'} · ${program.minor ? `Minor: ${program.minor}` : 'No minor declared'}`}</div>
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
+              <span className="text-slate-600">{[program.major, program.degree, program.minor && `Minor: ${program.minor}`].filter(Boolean).join(' · ') || 'No program entered manually'}</span>
+              <button onClick={() => setEditing(!editing)} className="flex items-center gap-1 font-semibold text-brand-900"><span className="icon text-base">edit</span>{editing ? 'Done' : 'Edit program'}</button>
+            </div>
+            {editing && (
+              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm font-semibold text-slate-800">
+                <label>Academic career<select className={sel} value={program.career} onChange={set('career')}><option value="" disabled>Select…</option><option>Undergraduate</option></select></label>
+                <label>Program<select className={sel} value={program.degree} onChange={set('degree')}><option value="" disabled>Select…</option>{DEGREES.map((o) => <option key={o} disabled={!degreeEnabled(program, o)}>{o}</option>)}</select></label>
+                <label>Declared major<select className={sel} value={program.major} onChange={set('major')}><option value="" disabled>Select…</option>{MAJORS.map((o) => <option key={o} disabled={!majorEnabled(program, o)}>{o}</option>)}</select></label>
+                <label>Minor <span className="font-normal text-slate-500">Optional</span><select className={sel} value={program.minor} onChange={set('minor')}><option value="">None declared</option>{MINORS.map((o) => <option key={o} disabled={!minorEnabled(program, o)}>{o}</option>)}</select></label>
+              </div>
+            )}
           </section>
           <section className="rounded-xl border border-slate-200 bg-white">
             <div className="border-b border-slate-200 p-5"><h2 className="text-xl font-bold">Requirement progress</h2><div className="mt-1 text-sm text-slate-600">In-progress and planned courses remain separate from completed work.</div></div>

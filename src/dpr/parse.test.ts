@@ -21,7 +21,7 @@ describe('parseDpr on the de-identified sample report', () => {
     expect(req('R10001/L0030').name).toBe('Graduation Writing Assessment Requirement (GWAR)')
   })
   it('reads the units/courses/GPA lines', () => {
-    expect(req('R12828/L0010')).toMatchObject({ kind: 'units', required: 2.68, taken: 0, needed: 2.68, status: 'open' })
+    expect(req('R12828/L0010')).toMatchObject({ kind: 'units', required: 3, taken: 0, needed: 3, status: 'open' })
     expect(req('R10001/L0030')).toMatchObject({ kind: 'courses', required: 1, needed: 1 })
     expect(req('R10072/L0010')).toMatchObject({ kind: 'gpa', required: 2, status: 'unknown' })
   })

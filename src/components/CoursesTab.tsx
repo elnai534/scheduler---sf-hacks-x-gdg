@@ -4,7 +4,7 @@ import type { Course } from '../data'
 import { completedCodes, inProgressCodes } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
 import { eligibility } from '../dag/graph'
-import { LEVELS, isFiltered, matchesCourse, subjectOf } from '../lib/courseFilter'
+import { LEVELS, isFiltered, matchesCourse, meetsTimeWindow, subjectOf } from '../lib/courseFilter'
 import type { Level } from '../lib/courseFilter'
 
 const meetingLine = (c: Course) => {
@@ -28,14 +28,21 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
   const [level, setLevel] = useState<Level | ''>('')
   const [subject, setSubject] = useState('')
   const [limit, setLimit] = useState(30)
+  const [location, setLocation] = useState('')
+  const [after, setAfter] = useState('')
+  const [before, setBefore] = useState('')
+  const [attr1, setAttr1] = useState('')
+  const [attr2, setAttr2] = useState('')
   const pool = [...SCHEDULABLE, ...CATALOG.filter((c) => c.mode === 'Catalog only')]
   const subjects = [...new Set(pool.map((c) => subjectOf(c.code)))].sort()
   const f = { q, level, subject }
-  const reset = () => { setQ(''); setLevel(''); setSubject(''); setSeatsOnly(false); setMode(''); setInstructor(''); setLimit(30) }
+  const reset = () => { setQ(''); setLevel(''); setSubject(''); setSeatsOnly(false); setMode(''); setInstructor(''); setLocation(''); setAfter(''); setBefore(''); setAttr1(''); setAttr2(''); setLimit(30) }
   const matches = pool.filter((c) =>
     matchesCourse(c, f) &&
     (!seatsOnly || c.seats > 0) && (!mode || c.mode === mode) &&
-    (!instructor || c.instructor.toLowerCase().includes(instructor.toLowerCase())),
+    (!instructor || c.instructor.toLowerCase().includes(instructor.toLowerCase())) &&
+    (!location || c.meetings.some((m) => m.location.toLowerCase().includes(location.toLowerCase()))) &&
+    meetsTimeWindow(c.meetings, after, before),
   )
   const results = matches.slice(0, limit)
   const input = 'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal outline-brand-700'
@@ -60,13 +67,13 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
           <div className="space-y-2 border-t border-slate-200 pt-2">
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seatsOnly} onChange={(e) => setSeatsOnly(e.target.checked)} />Seats available only</label>
             <label className="block text-sm font-medium">Instructor last name<input className={input} value={instructor} onChange={(e) => setInstructor(e.target.value)} /></label>
-            <label className="block text-sm font-medium">Location<input className={input} placeholder="e.g. Fine Arts Building" /></label>
+            <label className="block text-sm font-medium">Location<input className={input} placeholder="e.g. Fine Arts Building" value={location} onChange={(e) => setLocation(e.target.value)} /></label>
             <div className="grid grid-cols-2 gap-2 text-sm font-medium">
-              <label>Begins at/after<input type="time" className={input} /></label>
-              <label>Ends at/before<input type="time" className={input} /></label>
+              <label>Begins at/after<input type="time" className={input} value={after} onChange={(e) => setAfter(e.target.value)} /></label>
+              <label>Ends at/before<input type="time" className={input} value={before} onChange={(e) => setBefore(e.target.value)} /></label>
             </div>
-            <label className="block text-sm font-medium">Course attribute<input className={input} /></label>
-            <label className="block text-sm font-medium">Second course attribute<input className={input} /></label>
+            <label className="block text-sm font-medium">Course attribute<input className={input} value={attr1} onChange={(e) => setAttr1(e.target.value)} /></label>
+            <label className="block text-sm font-medium">Second course attribute<input className={input} value={attr2} onChange={(e) => setAttr2(e.target.value)} /></label>
             <div className="text-sm font-medium">Instruction mode</div>
             {['In person', 'Hybrid', 'Online asynchronous', 'Online synchronous'].map((m) => (
               <label key={m} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={mode === m} onChange={() => setMode(mode === m ? '' : m)} />{m}</label>
@@ -76,7 +83,7 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
       </div>
       <div className="flex items-center justify-between text-xs text-slate-500">
         <span>{matches.length} of {pool.length} classes from the SF State bulletin{matches.length > limit ? ` · showing ${limit}` : ''}</span>
-        {(isFiltered(f) || seatsOnly || mode || instructor) && <button onClick={reset} className="flex items-center gap-1 font-semibold text-brand-900"><span className="icon text-base">filter_alt_off</span>Clear filters</button>}
+        {(isFiltered(f) || seatsOnly || mode || instructor || location || after || before || attr1 || attr2) && <button onClick={reset} className="flex items-center gap-1 font-semibold text-brand-900"><span className="icon text-base">filter_alt_off</span>Clear filters</button>}
       </div>
       {results.length === 0 && <div className="py-6 text-center text-sm text-slate-500">No classes match these filters.</div>}
       {results.map((c) => {

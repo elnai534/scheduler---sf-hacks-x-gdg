@@ -41,6 +41,8 @@ export function parseDpr(text: string): DprReport {
 
   let section = ''
   const groups = new Map<string, string>()
+  /** "3 Units (2.68 converted quarter units)": the report's Units line carries the quarter figure; we show semester units. */
+  let conv: { sem: number; quarter: number } | null = null
   let target: { required: number; taken: number; needed: number; kind: DprRequirement['kind'] } | null = null
   let req: DprRequirement | null = null
   let pendingHeading = ''
@@ -115,12 +117,19 @@ export function parseDpr(text: string): DprReport {
       inNote = false
       continue
     }
+    const cv = /(\d+(?:\.\d+)?)\s+Units?\s*\((\d+(?:\.\d+)?)\s+converted quarter units\)/i.exec(line)
+    if (cv) conv = { sem: Number(cv[1]), quarter: Number(cv[2]) }
     const amt = /^(Units|Courses|GPA):\s*([\d.,]+) required,\s*([\d.,]+) (?:taken|actual)(?:,\s*([\d.,]+) needed)?/.exec(line)
     if (amt && target) {
       target.kind = amt[1] === 'Units' ? 'units' : amt[1] === 'Courses' ? 'courses' : 'gpa'
       target.required = num(amt[2])
       target.taken = num(amt[3])
       target.needed = amt[4] !== undefined ? num(amt[4]) : Math.max(0, target.required - target.taken)
+      if (amt[1] === 'Units' && conv && Math.abs(target.required - conv.quarter) < 0.01) {
+        target.required = conv.sem
+        target.needed = Math.max(0, conv.sem - target.taken)
+      }
+      conv = null
       continue
     }
     if (line.startsWith('Note:')) { pendingNotes.push(line.replace(/^Note:\s*/, '')); inNote = !line.endsWith('.'); continue }
