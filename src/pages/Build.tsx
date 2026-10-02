@@ -8,6 +8,8 @@ import { DEFAULT_PREFS } from '../recommend/recommend'
 import type { Prefs, Recommendation } from '../recommend/recommend'
 import type { Course } from '../data'
 import type { DprReport } from '../dpr/types'
+import type { Layout } from '../lib/layout'
+import type { Overrides } from '../lib/overrides'
 
 type Tab = 'plan' | 'courses' | 'gemini'
 const TABS: { id: Tab; label: string }[] = [{ id: 'plan', label: 'Plan' }, { id: 'courses', label: 'Courses' }, { id: 'gemini', label: 'Ask Gemini' }]
@@ -15,6 +17,8 @@ const TABS: { id: Tab; label: string }[] = [{ id: 'plan', label: 'Plan' }, { id:
 interface Props {
   tab: Tab; setTab: (t: Tab) => void
   report: DprReport | null
+  overrides: Overrides
+  layout: Layout
   accepted: Course[]
   onToggle: (c: Course) => void
   onApply: (add: Course[], remove: string[]) => void
@@ -56,7 +60,7 @@ export default function Build(p: Props) {
             ))}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div hidden={tab !== 'plan'}><PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} report={p.report} accepted={p.accepted} onToggle={p.onToggle} rec={rec} note={note} /></div>
+            <div hidden={tab !== 'plan'}><PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} report={p.report} overrides={p.overrides} layout={p.layout} accepted={p.accepted} onToggle={p.onToggle} rec={rec} note={note} /></div>
             <div hidden={tab !== 'courses'}><CoursesTab accepted={p.accepted} onToggle={p.onToggle} report={p.report} /></div>
             <div hidden={tab !== 'gemini'}><GeminiTab accepted={p.accepted} onApply={p.onApply} report={p.report} prefs={prefs} rec={rec} /></div>
           </div>

@@ -3,6 +3,8 @@ import { DAYS, REQUIREMENTS, cid } from '../data'
 import type { Course } from '../data'
 import type { DprReport } from '../dpr/types'
 import type { ReqItem } from '../lib/requirementGroups'
+import type { Layout } from '../lib/layout'
+import type { Overrides } from '../lib/overrides'
 import { DEGREE_UNITS, requirementSections, unitsTowardDegree } from '../lib/requirementGroups'
 import MissingCourses from './MissingCourses'
 import type { Recommendation } from '../recommend/recommend'
@@ -15,6 +17,8 @@ interface Props {
   setPriorities: (p: string[]) => void
   hasReport: boolean
   report: DprReport | null
+  overrides: Overrides
+  layout: Layout
   accepted: Course[]
   onToggle: (c: Course) => void
   rec: Recommendation | null
@@ -40,7 +44,7 @@ export default function PlanTab(p: Props) {
     setDrag(to)
   }
   const toggleDay = (d: (typeof DAYS)[number]) => set({ days: p.prefs.days.includes(d) ? p.prefs.days.filter((x) => x !== d) : [...p.prefs.days, d] })
-  const groups = p.report && p.report.requirements.length ? requirementSections(p.report) : null
+  const groups = p.report && p.report.requirements.length ? requirementSections(p.report, p.overrides, p.layout) : null
   const units = p.report ? unitsTowardDegree(p.report, p.accepted.reduce((n, c) => n + c.units, 0)) : 0
   const renderItem = (i: ReqItem) => i.req && p.report
     ? <li key={i.key}><MissingCourses req={i.req} report={p.report} accepted={p.accepted} onToggle={p.onToggle} /></li>

@@ -1,5 +1,7 @@
 import type { DprReport, DprRequirement } from '../dpr/types'
 import type { Overrides } from './overrides'
+import { EMPTY_LAYOUT, applyLayout } from './layout'
+import type { Layout } from './layout'
 
 export interface ReqItem {
   key: string
@@ -7,6 +9,8 @@ export interface ReqItem {
   reqId: string
   /** Status differs from the report because the student overrode it. */
   manual?: boolean
+  /** Added by the student, not from the report. */
+  custom?: boolean
   label: string
   status: 'open' | 'filled'
   /** Set on items that still need courses, so the UI can offer them. */
@@ -26,7 +30,7 @@ const CA_ITEMS = ['U.S. History', 'U.S. Government', 'California State and Local
 const isUpper = (q: DprRequirement) => /upper/i.test(q.group) || /\b\dUD\b/.test(q.name)
 
 /** Requirement sections for the Plan panel: hides the 120-unit and "Courses Completed" rows and the residence units, splits out the CA government requirement, and splits General Education into Lower/Upper Division. */
-export function requirementSections(report: DprReport, overrides: Overrides = {}): ReqSection[] {
+export function requirementSections(report: DprReport, overrides: Overrides = {}, layout: Layout = EMPTY_LAYOUT): ReqSection[] {
   const sections: ReqSection[] = []
   const section = (name: string) => {
     let s = sections.find((x) => x.name === name)
@@ -50,7 +54,7 @@ export function requirementSections(report: DprReport, overrides: Overrides = {}
   const ca = sections.findIndex((s) => s.name === CA_NAME)
   const uni = sections.findIndex((s) => /^university/i.test(s.name))
   if (ca >= 0 && uni >= 0 && ca !== uni + 1) sections.splice(uni + 1, 0, ...sections.splice(ca, 1))
-  return sections
+  return applyLayout(sections, layout, overrides)
 }
 
 /** Units counted toward the 120: courses on the report (completed, transfer, in progress) plus units selected in the schedule. */

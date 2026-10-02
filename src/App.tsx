@@ -12,6 +12,8 @@ import { CATALOG, SCHEDULABLE, byId, cid, conflictsWith } from './data'
 import { toggleId } from './lib/selection'
 import { addIssues } from './lib/addIssues'
 import { applyOverrides, setOverride } from './lib/overrides'
+import { EMPTY_LAYOUT } from './lib/layout'
+import type { Layout } from './lib/layout'
 import type { Overrides } from './lib/overrides'
 import IssuePopup from './components/IssuePopup'
 import ConfirmDelete from './components/ConfirmDelete'
@@ -24,6 +26,7 @@ export default function App() {
   const [step, setStep] = useState<Step>('pathway')
   const [program, setProgram] = usePersisted<Program>('program', { career: '', degree: '', major: '', minor: '' })
   const [rawReport, setReport] = usePersisted<DprReport | null>('report', null)
+  const [layout, setLayout] = usePersisted<Layout>('layout', EMPTY_LAYOUT)
   const [overrides, setOverrides] = usePersisted<Overrides>('overrides', {})
   const report = useMemo(() => applyOverrides(rawReport, overrides), [rawReport, overrides])
   const [openTab, setOpenTab] = useState<'plan' | 'courses' | 'gemini'>('plan')
@@ -73,11 +76,11 @@ export default function App() {
     <div className="min-h-screen">
       <Header step={step} onStep={setStep} />
       {step === 'pathway' && <Pathway onNext={() => setStep('setup')} />}
-      {step === 'setup' && <Setup program={program} setProgram={setProgram} onBack={() => setStep('pathway')} onNext={() => setStep('degree')} onReport={(r) => { setReport(r); setOverrides({}) }} />}
-      {step === 'degree' && <Degree report={report} rawReport={rawReport} overrides={overrides} onOverride={(id, st, want) => setOverrides((cur) => setOverride(cur, id, st, want))} program={program} accepted={accepted} onToggle={requestToggle} onNext={() => { setOpenTab('plan'); setStep('build') }} />}
+      {step === 'setup' && <Setup program={program} setProgram={setProgram} onBack={() => setStep('pathway')} onNext={() => setStep('degree')} onReport={(r) => { setReport(r); setOverrides({}); setLayout(EMPTY_LAYOUT) }} />}
+      {step === 'degree' && <Degree report={report} rawReport={rawReport} overrides={overrides} layout={layout} setLayout={setLayout} onOverride={(id, st, want) => setOverrides((cur) => setOverride(cur, id, st, want))} program={program} accepted={accepted} onToggle={requestToggle} onNext={() => { setOpenTab('plan'); setStep('build') }} />}
       {/* Always mounted (hidden off-step) so tab, preferences, filters and chat survive switching steps. */}
       <div hidden={step !== 'build'}>
-        <Build report={report} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={requestToggle} onApply={apply} onGenerate={generate}
+        <Build report={report} overrides={overrides} layout={layout} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={requestToggle} onApply={apply} onGenerate={generate}
           priorities={priorities} setPriorities={setPriorities} />
       </div>
       {removing && <ConfirmDelete course={removing} onCancel={() => setRemoving(null)} onConfirm={(remember) => { if (remember) writeSkipDeleteConfirm(true); toggle(removing); setRemoving(null) }} />}
