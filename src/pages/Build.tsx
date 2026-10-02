@@ -32,16 +32,7 @@ export default function Build(p: Props) {
   const blocking = countConflicts(p.accepted)
   const timed = p.accepted.filter((c) => c.meetings.length)
   const untimed = p.accepted.filter((c) => !c.meetings.length)
-  const [pending, setPending] = useState<Course | null>(null)
-  const [remember, setRemember] = useState(false)
-  const remove = (c: Course) => {
-    p.onToggle(c)
-    if (selected === cid(c)) setSelected(null)
-  }
-  const askRemove = (c: Course) => {
-    if (localStorage.getItem('skipRemoveConfirm') === '1') remove(c)
-    else { setRemember(false); setPending(c) }
-  }
+  const askRemove = (c: Course) => p.onToggle(c) // App confirms first (shared ConfirmDelete)
   const sel = p.accepted.find((c) => cid(c) === selected)
 
   return (
@@ -127,19 +118,6 @@ export default function Build(p: Props) {
           )}
         </section>
       </div>
-      {pending && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40" role="dialog" aria-modal="true">
-          <div className="w-[380px] rounded-xl bg-white p-5 shadow-xl">
-            <h3 className="text-lg font-bold">Delete this course?</h3>
-            <p className="mt-2 text-sm text-slate-600">{cid(pending)} · {pending.title} will be removed from your accepted schedule.</p>
-            <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="size-4 accent-[#2d1b69]" />Remember my choice</label>
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setPending(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold">Cancel</button>
-              <button onClick={() => { if (remember) localStorage.setItem('skipRemoveConfirm', '1'); remove(pending); setPending(null) }} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white">Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

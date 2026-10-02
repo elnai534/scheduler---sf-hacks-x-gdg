@@ -12,6 +12,8 @@ import { CATALOG, SCHEDULABLE, byId, cid, conflictsWith } from './data'
 import { toggleId } from './lib/selection'
 import { addIssues } from './lib/addIssues'
 import IssuePopup from './components/IssuePopup'
+import ConfirmDelete from './components/ConfirmDelete'
+import { readSkipDeleteConfirm, shouldConfirmDelete, writeSkipDeleteConfirm } from './lib/deleteConfirm'
 import { recommend } from './recommend/recommend'
 import type { Prefs, Recommendation } from './recommend/recommend'
 import type { Course } from './data'
@@ -28,9 +30,16 @@ export default function App() {
 
   const toggle = (c: Course) => setIds((cur) => toggleId(cur, cid(c)))
   const [warn, setWarn] = useState<{ course: Course; issues: string[] } | null>(null)
-  /** Adding a course with a problem asks first; removing, or adding a clean course, goes straight through. */
+  const [removing, setRemoving] = useState<Course | null>(null)
+  /** Removing asks first (unless "Remember my choice" was ticked); adding a problem course asks too; a clean add goes straight through. */
   const requestToggle = (c: Course) => {
-    const issues = accepted.some((a) => cid(a) === cid(c)) ? [] : addIssues(c, accepted, report)
+    const isRemoval = accepted.some((a) => cid(a) === cid(c))
+    if (isRemoval) {
+      if (shouldConfirmDelete(true, readSkipDeleteConfirm())) setRemoving(c)
+      else toggle(c)
+      return
+    }
+    const issues = addIssues(c, accepted, report)
     if (issues.length) setWarn({ course: c, issues })
     else toggle(c)
   }
@@ -67,6 +76,7 @@ export default function App() {
         <Build report={report} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={requestToggle} onApply={apply} onGenerate={generate}
           priorities={priorities} setPriorities={setPriorities} />
       </div>
+      {removing && <ConfirmDelete course={removing} onCancel={() => setRemoving(null)} onConfirm={(remember) => { if (remember) writeSkipDeleteConfirm(true); toggle(removing); setRemoving(null) }} />}
       {warn && <IssuePopup course={warn.course} issues={warn.issues} onAdd={() => { toggle(warn.course); setWarn(null) }} onCancel={() => setWarn(null)} />}
     </div>
   )
