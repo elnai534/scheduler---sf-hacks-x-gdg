@@ -1,19 +1,14 @@
 import { openRequirements } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
 import type { Course } from '../data'
-import { UPPER_DIVISION_UNITS } from '../lib/requirementGroups'
+import { UPPER_DIVISION_UNITS, requirementSections } from '../lib/requirementGroups'
+import type { Overrides } from '../lib/overrides'
 import MissingCourses from '../components/MissingCourses'
-import { useState } from 'react'
-import { applyChange, DEGREES, MAJORS, MINORS, degreeEnabled, majorEnabled, minorEnabled } from '../programRules'
 import type { Program } from './Setup'
-
-const sel = 'mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 text-sm font-normal outline-brand-700'
 
 const ICONS = [['check_circle', 'Completed', 'text-emerald-700'], ['schedule', 'In progress', 'text-brand-900'], ['menu_book', 'Remaining', 'text-slate-700']] as const
 
-export default function Degree({ program, setProgram, report, accepted, onToggle, onNext }: { program: Program; setProgram: (p: Program) => void; report: DprReport | null; accepted: Course[]; onToggle: (c: Course) => void; onNext: () => void }) {
-  const [editing, setEditing] = useState(false)
-  const set = (k: keyof Program) => (e: React.ChangeEvent<HTMLSelectElement>) => setProgram(applyChange(program, k, e.target.value))
+export default function Degree({ program, report, rawReport, overrides, onOverride, accepted, onToggle, onNext }: { program: Program; report: DprReport | null; rawReport: DprReport | null; overrides: Overrides; onOverride: (reqId: string, reportStatus: string, want: 'filled' | 'open') => void; accepted: Course[]; onToggle: (c: Course) => void; onNext: () => void }) {
   const counts = report
     ? [
         report.courses.filter((c) => c.status === 'completed' || c.status === 'transfer'),
@@ -21,8 +16,8 @@ export default function Degree({ program, setProgram, report, accepted, onToggle
         openRequirements(report).filter((q) => !UPPER_DIVISION_UNITS.test(q.name)).map((q) => ({ code: q.name, title: '' })),
       ]
     : [[], [], []]
-  const open = report ? openRequirements(report).filter((q) => !UPPER_DIVISION_UNITS.test(q.name)) : []
-  const sections = [...new Set(open.map((q) => q.section))]
+  const sections = report ? requirementSections(report, overrides) : []
+  const reportStatus = (id: string) => rawReport?.requirements.find((q) => q.id === id)?.status ?? 'unknown'
   const title = report ? report.plans.map((p) => p.replace(/-(BS|BA|MN)$/, (m) => (m === '-MN' ? ' (minor)' : m === '-BS' ? ', B.S.' : ', B.A.'))).join(' · ') : [program.major || 'Program not selected', program.degree === 'Bachelor of Arts' ? 'B.A.' : program.degree ? 'B.S.' : ''].filter(Boolean).join(', ')
   return (
     <div className="mx-auto max-w-[1240px] px-12 py-10">
@@ -37,17 +32,8 @@ export default function Degree({ program, setProgram, report, accepted, onToggle
           </section>
           <section className="rounded-xl border border-slate-200 bg-white">
             <div className="border-b border-slate-200 p-5">
-              <div className="flex items-start justify-between gap-3"><h2 className="text-xl font-bold">Requirement progress</h2>
-                <button onClick={() => setEditing(!editing)} className="flex items-center gap-1 text-sm font-semibold text-brand-900"><span className="icon text-base">edit</span>{editing ? 'Done' : 'Edit program'}</button></div>
-              <div className="mt-1 text-sm text-slate-600">In-progress and planned courses remain separate from completed work.</div>
-            {editing && (
-              <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm font-semibold text-slate-800">
-                <label>Academic career<select className={sel} value={program.career} onChange={set('career')}><option value="" disabled>Select…</option><option>Undergraduate</option></select></label>
-                <label>Program<select className={sel} value={program.degree} onChange={set('degree')}><option value="" disabled>Select…</option>{DEGREES.map((o) => <option key={o} disabled={!degreeEnabled(program, o)}>{o}</option>)}</select></label>
-                <label>Declared major<select className={sel} value={program.major} onChange={set('major')}><option value="" disabled>Select…</option>{MAJORS.map((o) => <option key={o} disabled={!majorEnabled(program, o)}>{o}</option>)}</select></label>
-                <label>Minor <span className="font-normal text-slate-500">Optional</span><select className={sel} value={program.minor} onChange={set('minor')}><option value="">None declared</option>{MINORS.map((o) => <option key={o} disabled={!minorEnabled(program, o)}>{o}</option>)}</select></label>
-              </div>
-            )}
+              <h2 className="text-xl font-bold">Requirement progress</h2>
+              <div className="mt-1 text-sm text-slate-600">Filled in from your degree progress report. Use the small links to override a requirement by hand.</div>
             </div>
             {!report && (
               <div className="px-6 py-8 text-center"><span className="icon text-3xl text-amber-700">warning</span>
@@ -55,12 +41,23 @@ export default function Degree({ program, setProgram, report, accepted, onToggle
                 <div className="mx-auto mt-1 max-w-md text-sm text-slate-600">Paste a degree report or verify requirements with an academic advisor before treating this overview as complete.</div></div>
             )}
             {report && sections.map((sec) => (
-              <details key={sec} className="border-b border-slate-100 px-5 py-3 last:border-0" open={sections.length === 1}>
-                <summary className="flex cursor-pointer items-center justify-between font-semibold">{sec || 'Requirements'}<span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs text-red-700">{open.filter((q) => q.section === sec).length} remaining</span></summary>
+              <details key={sec.name} className="border-b border-slate-100 px-5 py-3 last:border-0" open={sections.length === 1}>
+                <summary className="flex cursor-pointer items-center justify-between font-semibold">{sec.name}<span className={`rounded-full px-2.5 py-0.5 text-xs ${sec.items.length - sec.done ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>{sec.items.length - sec.done} remaining</span></summary>
                 <ul className="mt-3 space-y-2 text-sm">
-                  {open.filter((q) => q.section === sec).map((q) => (
-                    <li key={q.id}>{report && <MissingCourses req={q} report={report} accepted={accepted} onToggle={onToggle} />}</li>
-                  ))}
+                  {sec.items.map((i) => {
+                    const done = i.status === 'filled'
+                    const link = (text: string, want: 'filled' | 'open') => <button onClick={() => onOverride(i.reqId, reportStatus(i.reqId), want)} className="shrink-0 text-[11px] font-semibold text-brand-900 underline">{text}</button>
+                    return (
+                      <li key={i.key}>
+                        {i.req && <MissingCourses req={i.req} report={report} accepted={accepted} onToggle={onToggle} />}
+                        <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+                          <span className="flex items-center gap-1.5">{!i.req && <><span className={`icon text-sm ${done ? 'text-emerald-700' : 'text-slate-400'}`}>{done ? 'check_circle' : 'radio_button_unchecked'}</span><span>{i.label}</span></>}
+                            {i.manual && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Manual</span>}</span>
+                          <span className="flex gap-3">{i.manual && link('Use report value', done ? 'open' : 'filled')}{!i.manual && (done ? link('Mark not done', 'open') : link('Mark done', 'filled'))}</span>
+                        </div>
+                      </li>
+                    )
+                  })}
                 </ul>
               </details>
             ))}

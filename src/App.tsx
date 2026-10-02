@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { usePersisted } from './lib/persist'
 import Header from './components/Header'
 import type { Step } from './components/Header'
@@ -11,6 +11,8 @@ import type { Program } from './pages/Setup'
 import { CATALOG, SCHEDULABLE, byId, cid, conflictsWith } from './data'
 import { toggleId } from './lib/selection'
 import { addIssues } from './lib/addIssues'
+import { applyOverrides, setOverride } from './lib/overrides'
+import type { Overrides } from './lib/overrides'
 import IssuePopup from './components/IssuePopup'
 import ConfirmDelete from './components/ConfirmDelete'
 import { readSkipDeleteConfirm, shouldConfirmDelete, writeSkipDeleteConfirm } from './lib/deleteConfirm'
@@ -21,7 +23,9 @@ import type { Course } from './data'
 export default function App() {
   const [step, setStep] = useState<Step>('pathway')
   const [program, setProgram] = usePersisted<Program>('program', { career: '', degree: '', major: '', minor: '' })
-  const [report, setReport] = usePersisted<DprReport | null>('report', null)
+  const [rawReport, setReport] = usePersisted<DprReport | null>('report', null)
+  const [overrides, setOverrides] = usePersisted<Overrides>('overrides', {})
+  const report = useMemo(() => applyOverrides(rawReport, overrides), [rawReport, overrides])
   const [openTab, setOpenTab] = useState<'plan' | 'courses' | 'gemini'>('plan')
   const [ids, setIds] = usePersisted<string[]>('ids', [])
   const [priorities, setPriorities] = usePersisted('priorities', ['Major Requirements', 'SF State Requirements', 'Consolidate campus days', 'General Education Requirements'])
@@ -69,8 +73,8 @@ export default function App() {
     <div className="min-h-screen">
       <Header step={step} onStep={setStep} />
       {step === 'pathway' && <Pathway onNext={() => setStep('setup')} />}
-      {step === 'setup' && <Setup program={program} setProgram={setProgram} onBack={() => setStep('pathway')} onNext={() => setStep('degree')} onReport={setReport} />}
-      {step === 'degree' && <Degree report={report} program={program} setProgram={setProgram} accepted={accepted} onToggle={requestToggle} onNext={() => { setOpenTab('plan'); setStep('build') }} />}
+      {step === 'setup' && <Setup program={program} setProgram={setProgram} onBack={() => setStep('pathway')} onNext={() => setStep('degree')} onReport={(r) => { setReport(r); setOverrides({}) }} />}
+      {step === 'degree' && <Degree report={report} rawReport={rawReport} overrides={overrides} onOverride={(id, st, want) => setOverrides((cur) => setOverride(cur, id, st, want))} program={program} accepted={accepted} onToggle={requestToggle} onNext={() => { setOpenTab('plan'); setStep('build') }} />}
       {/* Always mounted (hidden off-step) so tab, preferences, filters and chat survive switching steps. */}
       <div hidden={step !== 'build'}>
         <Build report={report} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={requestToggle} onApply={apply} onGenerate={generate}

@@ -1,7 +1,12 @@
 import type { DprReport, DprRequirement } from '../dpr/types'
+import type { Overrides } from './overrides'
 
 export interface ReqItem {
   key: string
+  /** Id of the report requirement this row comes from (what a manual override targets). */
+  reqId: string
+  /** Status differs from the report because the student overrode it. */
+  manual?: boolean
   label: string
   status: 'open' | 'filled'
   /** Set on items that still need courses, so the UI can offer them. */
@@ -21,7 +26,7 @@ const CA_ITEMS = ['U.S. History', 'U.S. Government', 'California State and Local
 const isUpper = (q: DprRequirement) => /upper/i.test(q.group) || /\b\dUD\b/.test(q.name)
 
 /** Requirement sections for the Plan panel: hides the 120-unit and "Courses Completed" rows and the residence units, splits out the CA government requirement, and splits General Education into Lower/Upper Division. */
-export function requirementSections(report: DprReport): ReqSection[] {
+export function requirementSections(report: DprReport, overrides: Overrides = {}): ReqSection[] {
   const sections: ReqSection[] = []
   const section = (name: string) => {
     let s = sections.find((x) => x.name === name)
@@ -33,12 +38,12 @@ export function requirementSections(report: DprReport): ReqSection[] {
     const status = q.status
     if (CA_GOV.test(q.name)) {
       const s = section(CA_NAME)
-      CA_ITEMS.forEach((label, i) => s.items.push({ key: `${q.id}-${i}`, label, status, req: status === 'open' && i === 0 ? q : undefined }))
+      CA_ITEMS.forEach((label, i) => s.items.push({ key: `${q.id}-${i}`, reqId: q.id, manual: q.id in overrides, label, status, req: status === 'open' && i === 0 ? q : undefined }))
       continue
     }
     const name = q.section || 'Requirements'
     const sub = /general education/i.test(name) ? (isUpper(q) ? 'Upper Division' : 'Lower Division') : undefined
-    section(name).items.push({ key: q.id, label: q.name, status, req: status === 'open' ? q : undefined, sub })
+    section(name).items.push({ key: q.id, reqId: q.id, manual: q.id in overrides, label: q.name, status, req: status === 'open' ? q : undefined, sub })
   }
   for (const s of sections) s.done = s.items.filter((i) => i.status === 'filled').length
   // CA government sits right after University Requirements
