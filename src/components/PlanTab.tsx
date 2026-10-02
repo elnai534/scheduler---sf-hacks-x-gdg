@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { DAYS, REQUIREMENTS, cid } from '../data'
+import type { Course } from '../data'
 import type { DprReport } from '../dpr/types'
+import MissingCourses from './MissingCourses'
 import type { Recommendation } from '../recommend/recommend'
 import type { Prefs } from '../recommend/recommend'
 
@@ -12,6 +14,8 @@ interface Props {
   onGenerate: () => void
   hasReport: boolean
   report: DprReport | null
+  accepted: Course[]
+  onToggle: (c: Course) => void
   rec: Recommendation | null
   note: string
 }
@@ -61,7 +65,9 @@ export default function PlanTab(p: Props) {
               </summary>
               <div className="mt-2 h-1.5 rounded-full bg-slate-200"><div className="h-full rounded-full bg-brand-900" style={{ width: `${(g.done / g.items.length) * 100}%` }} /></div>
               <ul className="mt-2 space-y-1 text-xs">
-                {g.items.map((q) => <li key={q.id} className="flex items-start gap-1.5"><span className={`icon text-sm ${q.status === 'open' ? 'text-slate-400' : 'text-emerald-700'}`}>{q.status === 'open' ? 'radio_button_unchecked' : 'check_circle'}</span><span>{q.name}</span></li>)}
+                {g.items.map((q) => q.status === 'open' && p.report
+                  ? <li key={q.id}><MissingCourses req={q} report={p.report} accepted={p.accepted} onToggle={p.onToggle} /></li>
+                  : <li key={q.id} className="flex items-start gap-1.5"><span className="icon text-sm text-emerald-700">check_circle</span><span>{q.name}</span></li>)}
               </ul>
             </details>
           ))}

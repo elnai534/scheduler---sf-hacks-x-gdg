@@ -1,10 +1,12 @@
 import { openRequirements } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
+import type { Course } from '../data'
+import MissingCourses from '../components/MissingCourses'
 import type { Program } from './Setup'
 
 const ICONS = [['check_circle', 'Completed', 'text-emerald-700'], ['schedule', 'In progress', 'text-brand-900']] as const
 
-export default function Degree({ program, report, onNext, onBrowse }: { program: Program; report: DprReport | null; onNext: () => void; onBrowse: () => void }) {
+export default function Degree({ program, report, accepted, onToggle, onNext, onBrowse }: { program: Program; report: DprReport | null; accepted: Course[]; onToggle: (c: Course) => void; onNext: () => void; onBrowse: () => void }) {
   const counts = report
     ? [
         report.courses.filter((c) => c.status === 'completed' || c.status === 'transfer').length,
@@ -46,11 +48,7 @@ export default function Degree({ program, report, onNext, onBrowse }: { program:
                 <summary className="flex cursor-pointer items-center justify-between font-semibold">{sec || 'Requirements'}<span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs text-red-700">{open.filter((q) => q.section === sec).length} remaining</span></summary>
                 <ul className="mt-3 space-y-2 text-sm">
                   {open.filter((q) => q.section === sec).map((q) => (
-                    <li key={q.id} className="rounded-lg bg-slate-50 p-3">
-                      <div className="flex justify-between gap-3"><b>{q.name}</b><span className="shrink-0 text-xs text-slate-500">{q.kind === 'courses' ? `${q.needed} course` : `${q.needed} units`} needed</span></div>
-                      {q.group && q.group !== q.name && <div className="text-xs text-slate-500">{q.group}</div>}
-                      {q.options.length > 0 && <div className="mt-1 text-xs text-slate-600">Options: {q.options.slice(0, 6).map((o) => o.code).join(', ')}{q.options.length > 6 ? '…' : ''}</div>}
-                    </li>
+                    <li key={q.id}>{report && <MissingCourses req={q} report={report} accepted={accepted} onToggle={onToggle} />}</li>
                   ))}
                 </ul>
               </details>

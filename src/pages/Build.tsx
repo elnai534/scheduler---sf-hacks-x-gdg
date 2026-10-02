@@ -66,7 +66,7 @@ export default function Build(p: Props) {
             ))}
           </div>
           <div className="flex-1 overflow-y-auto">
-            <div hidden={tab !== 'plan'}><PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} report={p.report} rec={rec} note={note}
+            <div hidden={tab !== 'plan'}><PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} report={p.report} accepted={p.accepted} onToggle={p.onToggle} rec={rec} note={note}
               onGenerate={() => { const r = p.onGenerate(prefs); if (typeof r === 'string') { setNote(r); setRec(null) } else { setNote(''); setRec(r) } }} /></div>
             <div hidden={tab !== 'courses'}><CoursesTab accepted={p.accepted} onToggle={p.onToggle} report={p.report} /></div>
             <div hidden={tab !== 'gemini'}><GeminiTab accepted={p.accepted} onApply={p.onApply} report={p.report} prefs={prefs} rec={rec} /></div>
