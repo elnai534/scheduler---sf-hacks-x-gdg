@@ -10,6 +10,8 @@ import Setup from './pages/Setup'
 import type { Program } from './pages/Setup'
 import { CATALOG, SCHEDULABLE, byId, cid, conflictsWith } from './data'
 import { toggleId } from './lib/selection'
+import { addIssues } from './lib/addIssues'
+import IssuePopup from './components/IssuePopup'
 import { recommend } from './recommend/recommend'
 import type { Prefs, Recommendation } from './recommend/recommend'
 import type { Course } from './data'
@@ -25,6 +27,13 @@ export default function App() {
   const accepted = ids.map(byId).filter((c): c is Course => Boolean(c))
 
   const toggle = (c: Course) => setIds((cur) => toggleId(cur, cid(c)))
+  const [warn, setWarn] = useState<{ course: Course; issues: string[] } | null>(null)
+  /** Adding a course with a problem asks first; removing, or adding a clean course, goes straight through. */
+  const requestToggle = (c: Course) => {
+    const issues = accepted.some((a) => cid(a) === cid(c)) ? [] : addIssues(c, accepted, report)
+    if (issues.length) setWarn({ course: c, issues })
+    else toggle(c)
+  }
   const apply = (add: Course[], remove: string[]) =>
     setIds((cur) => [...cur.filter((x) => !remove.includes(x)), ...add.map(cid).filter((x) => !cur.includes(x) || remove.includes(x))])
 
@@ -52,12 +61,13 @@ export default function App() {
       <Header step={step} onStep={setStep} />
       {step === 'pathway' && <Pathway onNext={() => setStep('setup')} />}
       {step === 'setup' && <Setup program={program} setProgram={setProgram} onBack={() => setStep('pathway')} onNext={() => setStep('degree')} onReport={setReport} />}
-      {step === 'degree' && <Degree report={report} program={program} accepted={accepted} onToggle={toggle} onNext={() => { setOpenTab('plan'); setStep('build') }} />}
+      {step === 'degree' && <Degree report={report} program={program} accepted={accepted} onToggle={requestToggle} onNext={() => { setOpenTab('plan'); setStep('build') }} />}
       {/* Always mounted (hidden off-step) so tab, preferences, filters and chat survive switching steps. */}
       <div hidden={step !== 'build'}>
-        <Build report={report} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={toggle} onApply={apply} onGenerate={generate}
+        <Build report={report} tab={openTab} setTab={setOpenTab} accepted={accepted} onToggle={requestToggle} onApply={apply} onGenerate={generate}
           priorities={priorities} setPriorities={setPriorities} />
       </div>
+      {warn && <IssuePopup course={warn.course} issues={warn.issues} onAdd={() => { toggle(warn.course); setWarn(null) }} onCancel={() => setWarn(null)} />}
     </div>
   )
 }
