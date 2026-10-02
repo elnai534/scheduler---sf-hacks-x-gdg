@@ -4,16 +4,20 @@
 export interface ProgramPick { career: string; degree: string; major: string; minor: string }
 
 // Which majors each degree offers, limited to the options shown in Setup.
-// Sources: Visual Communication Design-BS and Computer Science-MN come from
-// src/dpr/fixtures/sample-dpr.txt; Computer Science as a B.S. was stated by the
-// user (SF State offers CS as a B.S.). Industrial Design B.S. is ASSUMED.
-// No listed major is a B.A., so Bachelor of Arts has no valid major here.
+// Verified 2026-10-02 against the SF State Bulletin (bulletin.sfsu.edu):
+//   Visual Communication Design: only "Bachelor of Science in Visual Communication Design"
+//   Industrial Design: only "Bachelor of Science in Industrial Design: Concentration in Product Design and Development"
+//   Computer Science: only "Bachelor of Science in Computer Science"
+// None of the three offered majors is a B.A., so Bachelor of Arts is NOT an option
+// (the Bulletin's B.A. in General Biology exists but Biology is not an offered major here).
 export const MAJORS_BY_DEGREE: Record<string, readonly string[]> = {
   'Bachelor of Science': ['Visual Communication Design', 'Industrial Design', 'Computer Science'],
-  'Bachelor of Arts': [],
 }
 
-export const DEGREES = Object.keys(MAJORS_BY_DEGREE)
+export const DEGREES: readonly string[] = Object.keys(MAJORS_BY_DEGREE)
+export const MAJORS: readonly string[] = [...new Set(Object.values(MAJORS_BY_DEGREE).flat())]
+// Bulletin minors: "Minor in Computer Science", "Minor in General Biology" (shown as Biology).
+export const MINORS: readonly string[] = ['Computer Science', 'Biology']
 
 export function validMajor(degree: string, major: string): boolean {
   return !degree || !major || (MAJORS_BY_DEGREE[degree] ?? []).includes(major)
