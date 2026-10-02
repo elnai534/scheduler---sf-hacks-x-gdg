@@ -1,7 +1,10 @@
+import './withResolvers.ts' // must stay first: pdfjs calls Promise.withResolvers at load time
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs'
-import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 
-pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
+// Run pdfjs in a Vite-bundled worker that polyfills first. (Absent in node/vitest, which sets workerSrc itself.)
+if (typeof Worker !== 'undefined') {
+  pdfjs.GlobalWorkerOptions.workerPort = new Worker(new URL('./pdf.worker.ts', import.meta.url), { type: 'module' })
+}
 
 export interface PdfItem { s: string; x: number; y: number; w?: number }
 

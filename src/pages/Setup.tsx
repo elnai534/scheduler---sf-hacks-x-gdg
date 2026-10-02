@@ -25,7 +25,7 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
   const upload = async (file: File | undefined) => {
     if (!file) return
     setBusy(true)
-    try { submit(await pdfToText(file)) } catch { setErr('Could not read that PDF. Upload your Degree Progress Report as a PDF file.') } finally { setBusy(false) }
+    try { submit(await pdfToText(file)) } catch (e) { console.error('PDF read failed', e); setErr('Could not read that PDF. Upload your Degree Progress Report as a PDF file.') } finally { setBusy(false) }
   }
   const set = (k: keyof Program) => (e: React.ChangeEvent<HTMLSelectElement>) => setProgram(applyChange(program, k, e.target.value))
   if (draft) return (
