@@ -69,7 +69,7 @@ export default function Build(p: Props) {
               <p className="mt-1 text-xs text-slate-500">Only applied sections appear here and in PDF export. Select a class block for details.</p>
             </div>
             <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${blocking ? 'border-yellow-300 bg-yellow-100 text-yellow-800' : 'border-green-200 bg-green-50 text-green-800'}`}>
-              {blocking ? `${blocking} conflict${blocking > 1 ? 's' : ''}` : 'No conflicts'}
+              {blocking ? `${blocking} issue${blocking > 1 ? 's' : ''}` : 'No issues'}
             </span>
           </div>
           <div className="mt-4"><Calendar courses={timed} selected={selected} onSelect={setSelected} /></div>

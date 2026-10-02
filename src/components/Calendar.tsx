@@ -1,4 +1,4 @@
-import { DAYS, cid, range } from '../data'
+import { DAYS, cid, conflictsWith, range } from '../data'
 import type { Course } from '../data'
 
 const START = 8 * 60
@@ -29,13 +29,14 @@ export default function Calendar({
               c.meetings.filter((m) => m.day === d).map((m) => {
                 const id = cid(c)
                 const warn = c.permission
+                const clash = conflictsWith(c, courses)
                 return (
                   <button
                     key={id + d}
                     onClick={() => onSelect(selected === id ? null : id)}
                     style={{ top: ((m.start - START) / 60) * ROW + 2, height: ((m.end - m.start) / 60) * ROW - 4 }}
                     className={`absolute inset-x-1 overflow-hidden rounded-md border-l-4 p-2 text-left text-[11px] leading-snug ${
-                      warn ? 'border-amber-300 bg-amber-50' : 'border-violet-300 bg-brand-100'
+                      clash ? 'border-amber-300 bg-[#fffbeb]' : 'border-violet-300 bg-[#f2effa]'
                     } ${selected === id ? 'ring-2 ring-brand-700' : ''}`}
                   >
                     <div className="flex items-start justify-between gap-1">
