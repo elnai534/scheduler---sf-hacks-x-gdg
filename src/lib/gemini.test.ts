@@ -70,6 +70,10 @@ describe('askGeminiJson', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('down', { status: 503 })))
     await expect(g.askGeminiJson('s', 'u')).rejects.toThrow(/503/)
   })
+  it('gives a clear message when the answer is cut off mid-JSON', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok('{"message": "The courses you can take on')))
+    await expect(g.askGeminiJson('s', 'u')).rejects.toThrow(/cut off or malformed/)
+  })
   it('asks for a key when none is saved', async () => {
     g.saveGeminiKey('')
     await expect(g.askGeminiJson('s', 'u')).rejects.toThrow(/API key/)

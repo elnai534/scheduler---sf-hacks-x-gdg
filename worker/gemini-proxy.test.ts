@@ -20,7 +20,10 @@ describe('gemini proxy worker', () => {
     expect(String(url)).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent')
     expect(String(url)).not.toContain('secret-key-xyz')
     expect((init as RequestInit).headers).toMatchObject({ 'x-goog-api-key': 'secret-key-xyz' })
-    expect(JSON.parse(String((init as RequestInit).body)).generationConfig.responseMimeType).toBe('application/json')
+    const sent = JSON.parse(String((init as RequestInit).body))
+    expect(sent.generationConfig.responseMimeType).toBe('application/json')
+    // thinking tokens (~3k with a big prompt) count against this; 2048 truncated real answers mid-JSON
+    expect(sent.generationConfig.maxOutputTokens).toBeGreaterThanOrEqual(8192)
   })
   it('never returns the key to the browser', async () => {
     const res = await worker.fetch(req(good), env)

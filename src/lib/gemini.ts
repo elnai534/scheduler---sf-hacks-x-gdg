@@ -35,5 +35,9 @@ export async function askGeminiJson<T>(system: string, user: string): Promise<T>
   if (!res || !res.ok) throw new Error(`Gemini ${res?.status ?? ''} ${(res ? (await res.text()).slice(0, 200) : lastErr)}`.trim())
   const data = await res.json()
   const text: string = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? ''
-  return JSON.parse(text) as T
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    throw new Error('Gemini’s answer was cut off or malformed. Please try again.')
+  }
 }

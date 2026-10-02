@@ -6,6 +6,8 @@
  *   ALLOWED_ORIGINS  (Text, optional)    comma list, default "https://elnai534.github.io"
  *
  * The site sends { model, system, user }; this forwards a fixed-shape request to Google.
+ * Gemini 3 models spend ~2-3k tokens "thinking" before answering and that counts against maxOutputTokens,
+ * so keep it high (8192) or answers get cut off mid-JSON.
  * It is NOT an open proxy: only allowed origins, only Gemini models, capped sizes, JSON output only.
  */
 const DEFAULT_ORIGINS = 'https://elnai534.github.io'
@@ -48,7 +50,7 @@ export default {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: 'user', parts: [{ text: user }] }],
-        generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2048 },
+        generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 8192 },
       }),
     })
     return new Response(await res.text(), { status: res.status, headers: { 'Content-Type': 'application/json', ...headers } })
