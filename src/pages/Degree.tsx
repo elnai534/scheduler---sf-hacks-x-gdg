@@ -33,21 +33,21 @@ export default function Degree({ program, setProgram, report, accepted, onToggle
           <section className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex items-start justify-between"><h2 className="text-xl font-bold">{title}</h2></div>
             <div className="mt-2 text-sm text-slate-600">{report ? `${report.career} · ${report.program} · Current term ${report.lastTerm}` : `${program.career || 'Career not selected'} · ${program.minor ? `Minor: ${program.minor}` : 'No minor declared'}`}</div>
-            <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
-              <span className="text-slate-600">{[program.major, program.degree, program.minor && `Minor: ${program.minor}`].filter(Boolean).join(' · ') || 'No program entered manually'}</span>
-              <button onClick={() => setEditing(!editing)} className="flex items-center gap-1 font-semibold text-brand-900"><span className="icon text-base">edit</span>{editing ? 'Done' : 'Edit program'}</button>
-            </div>
+          </section>
+          <section className="rounded-xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-200 p-5">
+              <div className="flex items-start justify-between gap-3"><h2 className="text-xl font-bold">Requirement progress</h2>
+                <button onClick={() => setEditing(!editing)} className="flex items-center gap-1 text-sm font-semibold text-brand-900"><span className="icon text-base">edit</span>{editing ? 'Done' : 'Edit program'}</button></div>
+              <div className="mt-1 text-sm text-slate-600">In-progress and planned courses remain separate from completed work.</div>
             {editing && (
-              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm font-semibold text-slate-800">
+              <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm font-semibold text-slate-800">
                 <label>Academic career<select className={sel} value={program.career} onChange={set('career')}><option value="" disabled>Select…</option><option>Undergraduate</option></select></label>
                 <label>Program<select className={sel} value={program.degree} onChange={set('degree')}><option value="" disabled>Select…</option>{DEGREES.map((o) => <option key={o} disabled={!degreeEnabled(program, o)}>{o}</option>)}</select></label>
                 <label>Declared major<select className={sel} value={program.major} onChange={set('major')}><option value="" disabled>Select…</option>{MAJORS.map((o) => <option key={o} disabled={!majorEnabled(program, o)}>{o}</option>)}</select></label>
                 <label>Minor <span className="font-normal text-slate-500">Optional</span><select className={sel} value={program.minor} onChange={set('minor')}><option value="">None declared</option>{MINORS.map((o) => <option key={o} disabled={!minorEnabled(program, o)}>{o}</option>)}</select></label>
               </div>
             )}
-          </section>
-          <section className="rounded-xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 p-5"><h2 className="text-xl font-bold">Requirement progress</h2><div className="mt-1 text-sm text-slate-600">In-progress and planned courses remain separate from completed work.</div></div>
+            </div>
             {!report && (
               <div className="px-6 py-8 text-center"><span className="icon text-3xl text-amber-700">warning</span>
                 <div className="mt-2 font-bold">Requirement details are not verified</div>
