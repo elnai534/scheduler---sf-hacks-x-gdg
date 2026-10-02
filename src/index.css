@@ -2,8 +2,27 @@
 
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
+  --color-brand-950: #261660;
+  --color-brand-900: #2d1b69;
+  --color-brand-700: #3d2a8c;
+  --color-brand-200: #d9d3f5;
+  --color-brand-100: #efecfa;
+  --color-paper: #f5f4f0;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 font-sans;
+  @apply bg-paper text-slate-900 font-sans;
+}
+
+.icon {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+  user-select: none;
 }
