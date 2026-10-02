@@ -12,7 +12,9 @@ export interface ReqSection { name: string; items: ReqItem[]; done: number }
 
 export const DEGREE_UNITS = 120
 
-const HIDDEN = /^(120 Minimum Units|Courses Completed|Residence Units)/i
+/** Already covered by the General Education Upper Division requirements. */
+export const UPPER_DIVISION_UNITS = /^Upper-Division Units/i
+const HIDDEN = /^(120 Minimum Units|Courses Completed|Residence Units|Upper-Division Units)/i
 const CA_GOV = /state and local government|u\.?\s?s\.? (history|government)/i
 const CA_NAME = 'CA State and Local Government Requirements'
 const CA_ITEMS = ['U.S. History', 'U.S. Government', 'California State and Local Government']

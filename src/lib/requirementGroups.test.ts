@@ -13,6 +13,7 @@ describe('requirementSections', () => {
   const r = report([
     q('120 Minimum Units Required for Degree', 'University Requirements', '120 Minimum Units Required for Degree'),
     q('Courses Completed / In-Progress', 'Courses Completed / In-Progress', 'Courses Completed / In-Progress', 'filled'),
+    q('Upper-Division Units = 30 Units', 'University Requirements', 'Upper-Division Units'),
     q('Residence Units = 30 Units', 'University Requirements', 'Residence Units'),
     q('Graduation Writing Assessment Requirement (GWAR)', 'University Requirements', 'GWAR'),
     q('California State and Local Government', 'University Requirements', 'U.S. History, U.S. Government', 'open'),
@@ -21,7 +22,7 @@ describe('requirementSections', () => {
   ])
   const sections = requirementSections(r)
   it('drops the 120-unit, Courses Completed and residence rows', () => {
-    expect(sections.flatMap((s) => s.items.map((i) => i.label)).join('|')).not.toMatch(/120 Minimum|Courses Completed|Residence/)
+    expect(sections.flatMap((s) => s.items.map((i) => i.label)).join('|')).not.toMatch(/120 Minimum|Courses Completed|Residence|Upper-Division Units/)
   })
   it('moves CA government into its own section after University, one item each', () => {
     const names = sections.map((s) => s.name)

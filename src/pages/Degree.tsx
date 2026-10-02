@@ -1,6 +1,7 @@
 import { openRequirements } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
 import type { Course } from '../data'
+import { UPPER_DIVISION_UNITS } from '../lib/requirementGroups'
 import MissingCourses from '../components/MissingCourses'
 import { useState } from 'react'
 import { applyChange, DEGREES, MAJORS, MINORS, degreeEnabled, majorEnabled, minorEnabled } from '../programRules'
@@ -17,10 +18,10 @@ export default function Degree({ program, setProgram, report, accepted, onToggle
     ? [
         report.courses.filter((c) => c.status === 'completed' || c.status === 'transfer'),
         report.courses.filter((c) => c.status === 'inProgress'),
-        openRequirements(report).map((q) => ({ code: q.name, title: '' })),
+        openRequirements(report).filter((q) => !UPPER_DIVISION_UNITS.test(q.name)).map((q) => ({ code: q.name, title: '' })),
       ]
     : [[], [], []]
-  const open = report ? openRequirements(report) : []
+  const open = report ? openRequirements(report).filter((q) => !UPPER_DIVISION_UNITS.test(q.name)) : []
   const sections = [...new Set(open.map((q) => q.section))]
   const title = report ? report.plans.map((p) => p.replace(/-(BS|BA|MN)$/, (m) => (m === '-MN' ? ' (minor)' : m === '-BS' ? ', B.S.' : ', B.A.'))).join(' · ') : [program.major || 'Program not selected', program.degree === 'Bachelor of Arts' ? 'B.A.' : program.degree ? 'B.S.' : ''].filter(Boolean).join(', ')
   return (
