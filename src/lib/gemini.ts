@@ -1,5 +1,5 @@
 /** Tried in order. A retired model (404) or a busy one (429/503) falls through to the next. */
-export const MODELS: string[] = [import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.8-flash', 'gemini-flash-latest']
+export const MODELS: string[] = [import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-flash-latest']
 const RETRYABLE = new Set([404, 429, 500, 503])
 const ENV_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
 const STORAGE = 'scheduler.geminiKey'

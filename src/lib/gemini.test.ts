@@ -49,6 +49,12 @@ describe('askGeminiJson', () => {
     expect(String(f.mock.calls[0][0])).toContain(g.MODELS[0])
     expect(String(f.mock.calls[1][0])).toContain(g.MODELS[1])
   })
+  it('keeps trying down the whole model list while servers are busy', async () => {
+    const f = vi.fn().mockResolvedValueOnce(new Response('busy', { status: 503 })).mockResolvedValueOnce(new Response('busy', { status: 503 })).mockResolvedValueOnce(ok('{"message":"third"}'))
+    vi.stubGlobal('fetch', f)
+    await expect(g.askGeminiJson('s', 'u')).resolves.toEqual({ message: 'third' })
+    expect(f).toHaveBeenCalledTimes(3)
+  })
   it('falls back on a busy server (503)', async () => {
     const f = vi.fn().mockResolvedValueOnce(new Response('busy', { status: 503 })).mockResolvedValueOnce(ok('{"message":"ok"}'))
     vi.stubGlobal('fetch', f)
