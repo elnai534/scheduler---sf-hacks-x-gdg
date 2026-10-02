@@ -16,6 +16,23 @@ beforeEach(async () => {
 })
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 
+describe('askGeminiJson via the server-side proxy', () => {
+  it('posts to the proxy with no key and hides the key box', async () => {
+    vi.stubEnv('VITE_GEMINI_PROXY_URL', 'https://proxy.example/')
+    vi.resetModules()
+    const m = await import('./gemini.ts')
+    m.saveGeminiKey('') // no browser key at all
+    const f = vi.fn().mockResolvedValue(ok('{"message":"via proxy"}'))
+    vi.stubGlobal('fetch', f)
+    expect(m.usesProxy).toBe(true)
+    expect(await m.askGeminiJson<{ message: string }>('sys', 'hi')).toEqual({ message: 'via proxy' })
+    const [url, init] = f.mock.calls[0]
+    expect(String(url)).toBe('https://proxy.example/')
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({ model: m.MODELS[0], system: 'sys', user: 'hi' })
+    expect(JSON.stringify((init as RequestInit).headers)).not.toMatch(/api-key/i)
+  })
+})
+
 describe('askGeminiJson', () => {
   it('sends the key in a header, never in the URL', async () => {
     const f = vi.fn().mockResolvedValue(ok('{"message":"hi"}'))

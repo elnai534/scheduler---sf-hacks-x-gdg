@@ -4,7 +4,7 @@ import { buildGeminiContext } from '../lib/geminiContext'
 import type { DprReport } from '../dpr/types'
 import type { Prefs, Recommendation } from '../recommend/recommend'
 import type { Course } from '../data'
-import { askGeminiJson, getGeminiKey, keyIsFromBuild, saveGeminiKey } from '../lib/gemini'
+import { askGeminiJson, getGeminiKey, keyIsFromBuild, saveGeminiKey, usesProxy } from '../lib/gemini'
 
 interface Msg { role: 'user' | 'ai'; text: string }
 interface Reply { message: string; add?: string[]; remove?: string[] }
@@ -16,7 +16,7 @@ export default function GeminiTab({ accepted, onApply, report, prefs, rec }: { a
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const end = useRef<HTMLDivElement>(null)
-  const [hasKey, setHasKey] = useState(Boolean(getGeminiKey()))
+  const [hasKey, setHasKey] = useState(usesProxy || Boolean(getGeminiKey()))
   const [keyDraft, setKeyDraft] = useState('')
 
   async function send(q: string) {
@@ -51,7 +51,7 @@ export default function GeminiTab({ accepted, onApply, report, prefs, rec }: { a
           </form>
         </div>
       )}
-      {hasKey && !keyIsFromBuild && <button onClick={() => { saveGeminiKey(''); setHasKey(false) }} className="mb-2 self-start text-xs text-slate-500 underline">Remove saved key</button>}
+      {hasKey && !keyIsFromBuild && !usesProxy && <button onClick={() => { saveGeminiKey(''); setHasKey(false) }} className="mb-2 self-start text-xs text-slate-500 underline">Remove saved key</button>}
       <div className="min-h-64 flex-1 space-y-2 overflow-y-auto rounded-xl border border-slate-300 bg-white p-3 text-sm">
         {msgs.length === 0 && <div className="text-slate-500">Ask me to adjust your schedule in plain language, or use a suggestion below. I can see the courses on your report, what you still need, and which classes you’re eligible for (not your name or ID).</div>}
         {msgs.map((m, i) => (
