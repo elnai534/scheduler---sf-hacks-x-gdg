@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { parseDpr } from '../dpr/parse'
 import { pdfToText } from '../dpr/pdf'
-import sampleDpr from '../dpr/fixtures/sample-dpr.txt?raw'
 import type { DprReport } from '../dpr/types'
 import { applyChange, DEGREES, MAJORS, MINORS, degreeEnabled, majorEnabled, minorEnabled } from '../programRules'
 
@@ -44,7 +43,6 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
               <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={busy} onChange={(e) => { upload(e.target.files?.[0]); e.target.value = '' }} />
             </label>
             {err && <div className="text-sm text-red-700">{err}</div>}
-            <button onClick={() => submit(sampleDpr)} className="px-3 py-1 text-xs font-semibold text-brand-900 underline">Use sample report</button>
           </div>
         </section>
         <div className="flex flex-col items-center py-2 text-xs font-semibold text-slate-400"><div className="w-px flex-1 bg-slate-300" /><span className="py-3">OR</span><div className="w-px flex-1 bg-slate-300" /></div>
