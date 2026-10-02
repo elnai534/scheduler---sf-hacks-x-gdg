@@ -105,9 +105,11 @@ export default function PlanTab(p: Props) {
         <Toggle on={p.prefs.seatsOnly} onChange={(v) => set({ seatsOnly: v })} label="Seats available only" hint="Skip full sections" />
         <div className="text-xs text-slate-500">Current candidate meetings are checked immediately.</div>
       </div>
-      <button onClick={p.onGenerate} className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 py-3 text-sm font-semibold text-white hover:bg-brand-700">
-        <span className="icon text-lg">auto_awesome</span>Generate proposed schedule
-      </button>
+      <div className="sticky bottom-0 z-10 -mx-4 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+        <button onClick={p.onGenerate} className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 py-3 text-sm font-semibold text-white hover:bg-brand-700">
+          <span className="icon text-lg">auto_awesome</span>Generate proposed schedule
+        </button>
+      </div>
       {!p.hasReport && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">No degree report loaded, so suggestions are not tied to your requirements. Paste one on Program setup.</div>}
       {p.note && <div className="rounded-lg bg-brand-100 p-3 text-xs text-brand-900">{p.note}</div>}
       {p.rec && (
