@@ -56,14 +56,14 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
     <div className="mx-auto max-w-[1240px] px-12 py-8">
       <div className="text-sm font-semibold text-brand-900">Step 2 of 4 · Program setup</div>
       <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Degree Progress Report</h1>
-      <p className="mt-4 max-w-3xl text-base text-slate-600">Upload or enter your academic progress so we can determine what course requirements you still need to meet.</p>
+      <p className="mt-4 max-w-3xl text-base text-slate-600">Upload or manually enter your academic progress so we can determine what course requirements you still need to meet.</p>
       <div className="mt-8 grid grid-cols-[1fr_auto_1.11fr] items-stretch gap-6">
         <section className="flex min-h-[376px] flex-col rounded-xl border border-violet-300 bg-brand-100/50 p-6">
           <h2 className="text-lg font-bold text-slate-900">Continue Automatically</h2>
           <div className="my-auto flex items-start gap-6 px-4">
             <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-brand-900 shadow-sm"><span className="icon text-xl">cloud_upload</span></div>
             <div><div className="font-bold">Upload your Degree Progress Report (DPR)</div>
-              <p className="mt-1 text-sm leading-6 text-slate-600">Optional. Upload a PDF to prefill program and requirement information. You will review all extracted values before they are used.</p></div>
+              <p className="mt-1 text-sm leading-6 text-slate-600">Optional. Upload a PDF to prefill program and requirement information.</p></div>
           </div>
           <div className="flex flex-col items-center gap-2">
             <label className="flex h-12 w-full max-w-[280px] cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand-900 px-6 text-base font-semibold text-white hover:bg-brand-700">
