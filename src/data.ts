@@ -2,6 +2,7 @@ import catalog from './data/courses.json'
 import { SECTIONS } from './data/sections'
 import { hasSampleSections, sampleSections } from './data/sampleSections'
 import type { CourseNode } from './dag/types'
+import { levelOf } from './lib/courseFilter'
 
 export type Day = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri'
 export const DAYS: Day[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
@@ -41,7 +42,7 @@ export interface Course {
 export const CATALOG: Course[] = (catalog as CourseNode[]).flatMap((n): Course[] => {
   const base = {
     code: n.code, title: n.title, units: n.units ?? 3, prereqText: n.prereqText, description: n.description, node: n,
-    division: Number(/\d+/.exec(n.code)![0]) >= 300 ? 'Upper Division' : 'Lower Division',
+    division: levelOf(n.code),
   }
   const sections = SECTIONS[n.code] ?? (hasSampleSections(n.code) ? sampleSections(n.code, n.units ?? 3) : undefined)
   if (!sections) {

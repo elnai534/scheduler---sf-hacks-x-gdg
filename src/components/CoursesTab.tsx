@@ -4,6 +4,8 @@ import type { Course } from '../data'
 import { completedCodes, inProgressCodes } from '../dpr/parse'
 import type { DprReport } from '../dpr/types'
 import { eligibility } from '../dag/graph'
+import { LEVELS, isFiltered, matchesCourse, subjectOf } from '../lib/courseFilter'
+import type { Level } from '../lib/courseFilter'
 
 const meetingLine = (c: Course) => {
   if (c.mode === 'Catalog only') return 'Section times not in the catalog'
@@ -23,9 +25,15 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
   const [seatsOnly, setSeatsOnly] = useState(false)
   const [mode, setMode] = useState('')
   const [instructor, setInstructor] = useState('')
+  const [level, setLevel] = useState<Level | ''>('')
+  const [subject, setSubject] = useState('')
   const [limit, setLimit] = useState(30)
-  const matches = [...SCHEDULABLE, ...CATALOG.filter((c) => c.mode === 'Catalog only')].filter((c) =>
-    (!q || `${c.code} ${c.title}`.toLowerCase().includes(q.toLowerCase())) &&
+  const pool = [...SCHEDULABLE, ...CATALOG.filter((c) => c.mode === 'Catalog only')]
+  const subjects = [...new Set(pool.map((c) => subjectOf(c.code)))].sort()
+  const f = { q, level, subject }
+  const reset = () => { setQ(''); setLevel(''); setSubject(''); setSeatsOnly(false); setMode(''); setInstructor(''); setLimit(30) }
+  const matches = pool.filter((c) =>
+    matchesCourse(c, f) &&
     (!seatsOnly || c.seats > 0) && (!mode || c.mode === mode) &&
     (!instructor || c.instructor.toLowerCase().includes(instructor.toLowerCase())),
   )
@@ -40,7 +48,11 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
       <div className="space-y-2 rounded-xl border border-slate-300 bg-white p-3">
         <label className="block text-sm font-medium">Term<select className={input} value={term} onChange={(e) => setTerm(e.target.value)}><option value="">Select…</option><option>Fall 2026</option><option>Spring 2027</option></select></label>
         <label className="block text-sm font-medium">Session<select className={input} value={session} onChange={(e) => setSession(e.target.value)}><option value="">Select…</option><option>Academic Regular Session</option><option>Winter Session</option></select></label>
-        <label className="block text-sm font-medium">Subject / course number<input className={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. DES or DES 200" /></label>
+        <label className="block text-sm font-medium">Subject / course number<input className={input} value={q} onChange={(e) => { setQ(e.target.value); setLimit(30) }} placeholder="e.g. DES or DES 200" /></label>
+        <div className="grid grid-cols-2 gap-2 text-sm font-medium">
+          <label>Level<select className={input} value={level} onChange={(e) => { setLevel(e.target.value as Level | ''); setLimit(30) }}><option value="">All levels</option>{LEVELS.map((l) => <option key={l}>{l}</option>)}</select></label>
+          <label>Department<select className={input} value={subject} onChange={(e) => { setSubject(e.target.value); setLimit(30) }}><option value="">All</option>{subjects.map((s) => <option key={s}>{s}</option>)}</select></label>
+        </div>
         <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 text-xs font-semibold text-brand-900">
           <span className="icon text-base">tune</span>{open ? 'Hide' : 'Show'} seat, mode, time, and instructor filters
         </button>
@@ -62,7 +74,10 @@ export default function CoursesTab({ accepted, onToggle, report }: { accepted: C
           </div>
         )}
       </div>
-      <div className="text-xs text-slate-500">{matches.length} classes from the SF State bulletin{matches.length > limit ? ` · showing ${limit}` : ''}</div>
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <span>{matches.length} of {pool.length} classes from the SF State bulletin{matches.length > limit ? ` · showing ${limit}` : ''}</span>
+        {(isFiltered(f) || seatsOnly || mode || instructor) && <button onClick={reset} className="flex items-center gap-1 font-semibold text-brand-900"><span className="icon text-base">filter_alt_off</span>Clear filters</button>}
+      </div>
       {results.length === 0 && <div className="py-6 text-center text-sm text-slate-500">No classes match these filters.</div>}
       {results.map((c) => {
         const added = accepted.some((a) => cid(a) === cid(c))
