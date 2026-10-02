@@ -8,6 +8,7 @@ import type { Prefs, Recommendation } from '../recommend/recommend'
 import type { Course } from '../data'
 import { askGeminiAgent, askGeminiJson, getGeminiKey, keyIsFromBuild, saveGeminiKey, usesProxy } from '../lib/gemini'
 import { TOOL_DECLARATIONS, needsGraphTools, runTool } from '../lib/geminiTools'
+import { answerLocally } from '../lib/localAnswers'
 
 interface Msg { role: 'user' | 'ai'; text: string }
 
@@ -30,6 +31,9 @@ export default function GeminiTab({ accepted, onApply, report, prefs, rec }: { a
     setText('')
     const pre = precheckQuestion(raw)
     if (!pre.ok) { setMsgs((m) => [...m, { role: 'user', text: raw.slice(0, 500) }, { role: 'ai', text: pre.reply }]); return }
+    // Eligibility, "what can I take" and "what do I still need" are answered from the graph and the report: exact, instant, no quota.
+    const local = answerLocally(pre.question, { report, accepted, schedulable: SCHEDULABLE, all: CATALOG, prefs })
+    if (local) { setMsgs((m) => [...m, { role: 'user', text: pre.question }, { role: 'ai', text: local }]); setTimeout(() => end.current?.scrollIntoView({ behavior: 'smooth' }), 50); return }
     if (Date.now() - lastSent.current < 4000) { setMsgs((m) => [...m, { role: 'user', text: pre.question }, { role: 'ai', text: 'Wait a few seconds before the next question.' }]); return }
     lastSent.current = Date.now()
     setMsgs((m) => [...m, { role: 'user', text: pre.question }])

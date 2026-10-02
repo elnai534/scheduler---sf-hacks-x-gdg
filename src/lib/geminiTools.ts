@@ -56,6 +56,18 @@ const asCode = (v: unknown): string | null => {
 }
 const t = (s: string, n = 90) => sanitizeField(s, n)
 
+/** Student-specific status of a course, straight from the prerequisite graph (in-progress courses are assumed to finish). */
+export function statusOf(code: string, env: ToolEnv): string {
+  const done = env.report ? completedCodes(env.report) : new Set<string>()
+  const doing = env.report ? inProgressCodes(env.report) : new Set<string>()
+  const assumed = new Set([...done, ...doing])
+  if (assumed.has(code)) return 'taken or in progress'
+  const n = graphOf(env.all).nodes.get(code) ?? null
+  if (!n) return 'not in the catalog'
+  const e = eligibility(n, assumed, doing)
+  return e.ok ? 'eligible' : `needs ${e.unmet.map((g) => g.join(' or ')).join(' and ')}`
+}
+
 export function runTool(name: string, rawArgs: unknown, env: ToolEnv): unknown {
   const args = (rawArgs && typeof rawArgs === 'object' ? rawArgs : {}) as Record<string, unknown>
   const done = env.report ? completedCodes(env.report) : new Set<string>()
