@@ -8,8 +8,8 @@ const PATHS = [
 ]
 
 export default function Pathway({ onNext }: { onNext: () => void }) {
-  const [path, setPath] = useState('Undergraduate')
-  const [enrolled, setEnrolled] = useState('current')
+  const [path, setPath] = useState('')
+  const [enrolled, setEnrolled] = useState('')
   const ok = path === 'Undergraduate' && enrolled === 'current'
   return (
     <div className="mx-auto max-w-[1240px] px-12 py-10">

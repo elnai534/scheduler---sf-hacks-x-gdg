@@ -45,6 +45,7 @@ export default function Calendar({
                     <div className="font-semibold">{c.title}</div>
                     <div className="mt-0.5 text-[10px] italic text-slate-500">Class Number: {c.classNumber}</div>
                     <div className="mt-1">{range(m.start, m.end)}</div>
+                    {warn && <div className="mt-0.5 text-[10px] font-semibold text-amber-800">Permission number required</div>}
                   </button>
                 )
               }),

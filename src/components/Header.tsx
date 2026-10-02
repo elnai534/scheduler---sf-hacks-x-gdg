@@ -4,7 +4,6 @@ const STEPS: { id: Step; label: string }[] = [
   { id: 'pathway', label: 'Program setup' },
   { id: 'degree', label: 'Degree overview' },
   { id: 'build', label: 'Build schedule' },
-  { id: 'review', label: 'Final review' },
 ]
 
 export default function Header({ step, onStep }: { step: Step; onStep: (s: Step) => void }) {
