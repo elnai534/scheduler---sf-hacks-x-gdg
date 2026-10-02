@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { DAYS, REQUIREMENTS, cid } from '../data'
 import type { Course } from '../data'
 import type { DprReport } from '../dpr/types'
+import type { ReqItem } from '../lib/requirementGroups'
+import { DEGREE_UNITS, requirementSections, unitsTowardDegree } from '../lib/requirementGroups'
 import MissingCourses from './MissingCourses'
 import type { Recommendation } from '../recommend/recommend'
 import type { Prefs } from '../recommend/recommend'
@@ -11,7 +13,6 @@ interface Props {
   setPrefs: (p: Prefs) => void
   priorities: string[]
   setPriorities: (p: string[]) => void
-  onGenerate: () => void
   hasReport: boolean
   report: DprReport | null
   accepted: Course[]
@@ -39,15 +40,11 @@ export default function PlanTab(p: Props) {
     setDrag(to)
   }
   const toggleDay = (d: (typeof DAYS)[number]) => set({ days: p.prefs.days.includes(d) ? p.prefs.days.filter((x) => x !== d) : [...p.prefs.days, d] })
-  const reqs = p.report?.requirements.filter((q) => q.status !== 'unknown') ?? []
-  const groups = p.report && reqs.length
-    ? [...new Set(reqs.map((q) => q.section || 'Requirements'))].map((name) => {
-        const items = reqs.filter((q) => (q.section || 'Requirements') === name)
-        return { name, items, done: items.filter((q) => q.status === 'filled').length }
-      })
-    : null
-  const totalAll = reqs.length
-  const totalDone = reqs.filter((q) => q.status === 'filled').length
+  const groups = p.report && p.report.requirements.length ? requirementSections(p.report) : null
+  const units = p.report ? unitsTowardDegree(p.report, p.accepted.reduce((n, c) => n + c.units, 0)) : 0
+  const renderItem = (i: ReqItem) => i.req && p.report
+    ? <li key={i.key}><MissingCourses req={i.req} report={p.report} accepted={p.accepted} onToggle={p.onToggle} /></li>
+    : <li key={i.key} className="flex items-start gap-1.5"><span className={`icon text-sm ${i.status === 'open' ? 'text-slate-400' : 'text-emerald-700'}`}>{i.status === 'open' ? 'radio_button_unchecked' : 'check_circle'}</span><span>{i.label}</span></li>
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-start gap-2">
@@ -56,7 +53,7 @@ export default function PlanTab(p: Props) {
       </div>
       {groups ? (
         <>
-          <div className="rounded-lg bg-brand-100 px-3 py-2 text-sm">Total requirements: <b>{totalDone} / {totalAll}</b> <span className="text-xs text-slate-600">completed or in progress / total to graduate</span></div>
+          <div className="rounded-lg bg-brand-100 px-3 py-2 text-sm">Total units: <b>{units} / {DEGREE_UNITS}</b> <span className="text-xs text-slate-600">completed, in progress, or selected</span></div>
           {groups.map((g) => (
             <details key={g.name} className="border-b border-slate-200 pb-3">
               <summary className="flex cursor-pointer items-end justify-between">
@@ -64,11 +61,11 @@ export default function PlanTab(p: Props) {
                 <div className="flex items-end gap-2 text-right text-sm"><div><b>{g.done} / {g.items.length}</b><div className="text-xs text-slate-500">{g.items.length - g.done} remaining</div></div><span className="icon text-slate-500">expand_more</span></div>
               </summary>
               <div className="mt-2 h-1.5 rounded-full bg-slate-200"><div className="h-full rounded-full bg-brand-900" style={{ width: `${(g.done / g.items.length) * 100}%` }} /></div>
-              <ul className="mt-2 space-y-1 text-xs">
-                {g.items.map((q) => q.status === 'open' && p.report
-                  ? <li key={q.id}><MissingCourses req={q} report={p.report} accepted={p.accepted} onToggle={p.onToggle} /></li>
-                  : <li key={q.id} className="flex items-start gap-1.5"><span className="icon text-sm text-emerald-700">check_circle</span><span>{q.name}</span></li>)}
-              </ul>
+              {(['Lower Division', 'Upper Division'] as const).some((d) => g.items.some((i) => i.sub === d))
+                ? (['Lower Division', 'Upper Division'] as const).map((d) => (
+                  <div key={d} className="mt-2"><div className="text-xs font-semibold text-slate-700">{d}</div><ul className="mt-1 space-y-1 text-xs">{g.items.filter((i) => i.sub === d).map(renderItem)}</ul></div>
+                ))
+                : <ul className="mt-2 space-y-1 text-xs">{g.items.map(renderItem)}</ul>}
             </details>
           ))}
         </>
@@ -104,11 +101,6 @@ export default function PlanTab(p: Props) {
         <Toggle on={p.prefs.onlineOnly} onChange={(v) => set({ onlineOnly: v })} label="Online classes only" hint="Asynchronous or scheduled online" />
         <Toggle on={p.prefs.seatsOnly} onChange={(v) => set({ seatsOnly: v })} label="Seats available only" hint="Skip full sections" />
         <div className="text-xs text-slate-500">Current candidate meetings are checked immediately.</div>
-      </div>
-      <div className="sticky bottom-0 z-10 -mx-4 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
-        <button onClick={p.onGenerate} className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 py-3 text-sm font-semibold text-white hover:bg-brand-700">
-          <span className="icon text-lg">auto_awesome</span>Generate proposed schedule
-        </button>
       </div>
       {!p.hasReport && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">No degree report loaded, so suggestions are not tied to your requirements. Paste one on Program setup.</div>}
       {p.note && <div className="rounded-lg bg-brand-100 p-3 text-xs text-brand-900">{p.note}</div>}

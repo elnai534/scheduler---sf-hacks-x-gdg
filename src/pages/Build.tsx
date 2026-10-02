@@ -48,21 +48,27 @@ export default function Build(p: Props) {
           <button onClick={() => window.print()} className="flex items-center gap-2 rounded-lg bg-brand-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Export<span className="icon text-lg">chevron_right</span></button>
         </div>
       </div>
-      <div className="grid grid-cols-[430px_1fr] overflow-hidden rounded-2xl border border-slate-300 bg-white">
-        <section className="flex h-[calc(100vh-190px)] min-h-[560px] flex-col border-r border-slate-300 bg-paper/40">
+      <div className="grid h-[calc(100vh-190px)] min-h-[560px] grid-cols-[430px_1fr] overflow-hidden rounded-2xl border border-slate-300 bg-white">
+        <section className="flex min-h-0 flex-col border-r border-slate-300 bg-paper/40">
           <div className="grid grid-cols-3 border-b border-slate-300 bg-white">
             {TABS.map((t) => (
               <button key={t.id} onClick={() => setTab(t.id)} className={`m-1 rounded-lg py-2 text-sm font-medium ${tab === t.id ? 'bg-brand-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>{t.label}</button>
             ))}
           </div>
-          <div className="flex-1 overflow-y-auto">
-            <div hidden={tab !== 'plan'}><PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} report={p.report} accepted={p.accepted} onToggle={p.onToggle} rec={rec} note={note}
-              onGenerate={() => { const r = p.onGenerate(prefs); if (typeof r === 'string') { setNote(r); setRec(null) } else { setNote(''); setRec(r) } }} /></div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div hidden={tab !== 'plan'}><PlanTab prefs={prefs} setPrefs={setPrefs} priorities={p.priorities} setPriorities={p.setPriorities} hasReport={Boolean(p.report)} report={p.report} accepted={p.accepted} onToggle={p.onToggle} rec={rec} note={note} /></div>
             <div hidden={tab !== 'courses'}><CoursesTab accepted={p.accepted} onToggle={p.onToggle} report={p.report} /></div>
             <div hidden={tab !== 'gemini'}><GeminiTab accepted={p.accepted} onApply={p.onApply} report={p.report} prefs={prefs} rec={rec} /></div>
           </div>
+          {tab === 'plan' && (
+            <div className="border-t border-slate-300 bg-white p-3">
+              <button onClick={() => { const r = p.onGenerate(prefs); if (typeof r === 'string') { setNote(r); setRec(null) } else { setNote(''); setRec(r) } }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 py-3 text-sm font-semibold text-white hover:bg-brand-700">
+                <span className="icon text-lg">auto_awesome</span>Generate proposed schedule
+              </button>
+            </div>
+          )}
         </section>
-        <section className="print-area p-5">
+        <section className="print-area min-h-0 overflow-y-auto p-5">
           <div className="mb-3 hidden print:block">
             <h1 className="text-xl font-bold">Fall 2026 schedule · {units} units</h1>
             <div className="text-xs text-slate-600">Planning schedule only, not enrollment. Verify class numbers and permissions in the SF State registration system.</div>

@@ -35,3 +35,21 @@ body {
   .print-area, .print-area * { visibility: visible; }
   .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
 }
+
+/* CTAs pop on hover so they read as clickable. */
+button[class*="bg-brand-900"]:not([class*="m-1"]):not(:disabled),
+button[class*="bg-red-700"],
+button[class*="border-violet-300"],
+label[class*="bg-brand-900"] {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+button[class*="bg-brand-900"]:not([class*="m-1"]):not(:disabled):hover,
+button[class*="bg-red-700"]:hover,
+button[class*="border-violet-300"]:hover,
+label[class*="bg-brand-900"]:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 14px rgb(45 27 105 / 0.28);
+}
+@media (prefers-reduced-motion: reduce) {
+  button, label { transition: none !important; transform: none !important; }
+}
