@@ -71,7 +71,11 @@ export default function Build(p: Props) {
             <div hidden={tab !== 'gemini'}><GeminiTab accepted={p.accepted} onApply={p.onApply} report={p.report} prefs={prefs} rec={rec} /></div>
           </div>
         </section>
-        <section className="p-5">
+        <section className="print-area p-5">
+          <div className="mb-3 hidden print:block">
+            <h1 className="text-xl font-bold">Fall 2026 schedule · {units} units</h1>
+            <div className="text-xs text-slate-600">Planning schedule only, not enrollment. Verify class numbers and permissions in the SF State registration system.</div>
+          </div>
           <div className="flex items-start justify-between">
             <div>
               <h2 className="flex items-center gap-2 text-xl font-bold"><span className="icon text-2xl text-brand-900">event_available</span>Selected schedule</h2>
@@ -83,7 +87,7 @@ export default function Build(p: Props) {
           </div>
           <div className="mt-4"><Calendar courses={timed} selected={selected} onSelect={setSelected} /></div>
           {sel && (
-            <div className="mt-3 rounded-xl border border-brand-200 bg-brand-100 p-4 text-sm">
+            <div className="mt-3 rounded-xl border border-brand-200 bg-brand-100 p-4 text-sm print:hidden">
               <div className="font-bold">{cid(sel)} · {sel.title}</div>
               <div className="text-xs text-slate-600">Class #{sel.classNumber} · {sel.units} units · {sel.instructor} · {sel.seats} seats</div>
               <div className="mt-1 text-xs">{sel.meetings.map((m) => `${m.day} ${range(m.start, m.end)} (${m.location})`).join(' · ')}</div>
@@ -91,7 +95,7 @@ export default function Build(p: Props) {
               <button onClick={() => askRemove(sel)} className="mt-2 text-xs font-semibold text-red-700">Remove from schedule</button>
             </div>
           )}
-          <div className="mt-5">
+          <div className="mt-5 print:hidden">
             <div>
               <h3 className="mb-2 text-sm font-bold">Asynchronous</h3>
               {untimed.length === 0 && <div className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">None added.</div>}
@@ -105,6 +109,22 @@ export default function Build(p: Props) {
               ))}
             </div>
           </div>
+          {p.accepted.length > 0 && (
+            <table className="mt-5 hidden w-full border-collapse text-left text-xs print:table">
+              <thead><tr className="border-b border-slate-400"><th className="py-1 pr-2">Class #</th><th className="pr-2">Course</th><th className="pr-2">Units</th><th className="pr-2">Meetings</th><th>Instructor</th></tr></thead>
+              <tbody>
+                {p.accepted.map((c) => (
+                  <tr key={cid(c)} className="border-b border-slate-200 align-top">
+                    <td className="py-1 pr-2">{c.classNumber}</td>
+                    <td className="pr-2">{cid(c)} · {c.title}{c.permission && ' · permission number required'}</td>
+                    <td className="pr-2">{c.units}</td>
+                    <td className="pr-2">{c.meetings.length ? c.meetings.map((m) => `${m.day} ${range(m.start, m.end)} (${m.location})`).join('; ') : c.mode}</td>
+                    <td>{c.instructor}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       </div>
       {pending && (

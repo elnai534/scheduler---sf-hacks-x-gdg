@@ -26,3 +26,12 @@ body {
   -webkit-font-feature-settings: "liga";
   user-select: none;
 }
+
+/* Export to PDF: Export calls window.print(); print only the selected-schedule panel, landscape. */
+@page { size: landscape; margin: 12mm; }
+@media print {
+  body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+}
