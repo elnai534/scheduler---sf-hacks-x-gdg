@@ -18,7 +18,7 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
   const [editing, setEditing] = useState<ReportField | null>(null)
   const submit = (raw: string) => {
     const r = parseDpr(raw)
-    if (!r.requirements.length) { setErr('No requirements found. Upload the full Degree Progress Report PDF (expand all sections before saving it as a PDF).'); return }
+    if (!r.requirements.length) { setErr('No requirements found. Upload the full Degree Progress Report PDF.'); return }
     setErr('')
     setDraft(r)
   }
@@ -32,7 +32,7 @@ export default function Setup({ program, setProgram, onNext, onBack, onReport }:
     <div className="mx-auto max-w-[1240px] px-12 py-8">
       <div className="text-sm font-semibold text-brand-900">Step 3 of 4 · Program setup</div>
       <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Review information extracted from your DPR</h1>
-      <p className="mt-4 max-w-3xl text-base text-slate-600">Correct extraction errors before this evidence is used for recommendations.</p>
+      <p className="mt-4 max-w-3xl text-base text-slate-600">Review for any extraction errors before this evidence is used for recommendations.</p>
       <section className="mt-8 max-w-3xl rounded-xl border border-slate-300 bg-white shadow-sm">
         {reportRows(draft).map((row) => (
           <div key={row.key} className="flex items-center gap-4 border-b border-slate-200 px-6 py-4 last:border-b-0">
